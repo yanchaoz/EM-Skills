@@ -1,211 +1,395 @@
 # EM-Skills
 
-[中文](#中文) · [English](#english)
+**Reusable Agent Skills for Electron Microscopy (EM / Volume EM)**
 
-面向电子显微镜（EM / volume EM）的可复用 Agent Skills。当前提供 `segneuron-inference`：从体素元数据审计、分辨率调整、SegNeuron affinity 推理，到多 β 实例后处理、专业可视化、标签恢复和质量门控。
+English | [简体中文](README.zh-CN.md)
 
-## 中文
+EM-Skills is a collection of reusable Agent Skills for professional electron microscopy analysis.
 
-### 当前 Skill
+Instead of treating EM analysis as a single model inference step, each skill organizes the complete workflow required for reliable scientific use, including data inspection, physical-resolution planning, pilot validation, model inference, parameter comparison, human review, output restoration, visualization, and quality control.
 
-| Skill | 适用任务 | 入口 |
-| --- | --- | --- |
-| `segneuron-inference` | FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等体电镜数据的 SegNeuron 神经元实例分割 | [`skills/segneuron-inference/SKILL.md`](skills/segneuron-inference/SKILL.md) |
+The goal is simple:
 
-### 安装到 Codex
-
-在 Codex 中输入：
-
-```text
-请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/segneuron-inference
-```
-
-或手动安装：
-
-```powershell
-git clone https://github.com/yanchaoz/EM-Skills.git
-Copy-Item -Recurse -Force `
-  .\EM-Skills\skills\segneuron-inference `
-  "$env:USERPROFILE\.codex\skills\segneuron-inference"
-```
-
-重启 Codex 或新建任务以重新发现 skill。请复制完整目录，而不是只复制 `SKILL.md`。
-
-### 在 Codex 中调用
-
-```text
-请使用 segneuron-inference skill 审计这份 zyx 体电镜数据，按物理分辨率规划模型网格，
-运行 SegNeuron pilot；对 beta=[0.10, 0.25, 0.50, 0.75] 生成实例候选和对比图，
-让我选择 beta 后再生成正式 instance，并输出原图、亲和图、膜和 instance overlay。
-```
-
-### 标准工作流
-
-```text
-source raw → audit → model-grid plan → pilot → affinity inference
-           → beta sweep → user selects beta → final instance
-           → label restoration → verify → finalize
-```
-
-```powershell
-cd EM-Skills\skills\segneuron-inference
-python scripts\segneuron_pipeline.py scaffold project.yaml
-python scripts\segneuron_pipeline.py audit project.yaml
-python scripts\segneuron_pipeline.py plan project.yaml
-python scripts\segneuron_pipeline.py pilot project.yaml
-python scripts\segneuron_pipeline.py infer project.yaml --execute
-python scripts\segneuron_pipeline.py beta-sweep project.yaml       # 先审阅 dry-run jobs
-python scripts\segneuron_pipeline.py beta-sweep project.yaml --execute
-python scripts\segneuron_pipeline.py select-beta project.yaml --beta 0.25
-python scripts\segneuron_pipeline.py instance project.yaml --execute
-python scripts\segneuron_pipeline.py restore project.yaml --execute
-python scripts\segneuron_pipeline.py verify project.yaml
-python scripts\segneuron_pipeline.py finalize project.yaml
-```
-
-`infer`、`beta-sweep`、`instance` 和 `restore` 默认只生成作业规格；必须显式添加 `--execute` 才会调用外部代码。配置更改后，旧的 β 选择会失效，必须重新比较和选择。
-
-### 配置多个 β，并让使用者选择
-
-```yaml
-instance:
-  method: frmc
-  scope: whole-volume
-  label_dtype: uint64
-  background_id: 0
-  beta_sweep:
-    values: [0.10, 0.25, 0.50, 0.75]
-
-commands:
-  beta_sweep:
-    argv:
-      - python
-      - adapters/run_frmc.py
-      - --affinities
-      - "{output_root}/affinities"
-      - --beta
-      - "{beta}"
-      - --output
-      - "{output_root}/beta-candidates/instances-beta-{beta_tag}.npy"
-    cwd: "{repo_path}"
-    env: {}
-    expected_outputs:
-      - "beta-candidates/instances-beta-{beta_tag}.npy"
-  instance:
-    argv:
-      - python
-      - adapters/run_frmc.py
-      - --beta
-      - "{selected_beta}"
-      - --output
-      - "{output_root}/instances-model-grid"
-    cwd: "{repo_path}"
-    env: {}
-    expected_outputs:
-      - instances-model-grid
-```
-
-`beta-sweep` 为每个 β 写出独立 candidate；`select-beta` 只接受配置中存在且输出完整的 candidate。Skill 不会根据 instance 数量自动挑 β。应在相同物理切片上审查 merge、split、fragment、z 向连续性及前景泄漏。
-
-### 专业可视化
-
-四联图包含原始 EM、三通道 affinity、膜证据和 instance overlay：
-
-```powershell
-python scripts\segneuron_visualize.py summary `
-  --raw derived\raw-model-grid.tif `
-  --affinities derived\affinities.npy `
-  --membrane derived\boundaries.tif `
-  --membrane-mode interior `
-  --instances derived\instances-model-grid.npy `
-  --axis xy --index 9 `
-  --resolution-nm-zyx 50 8 8 `
-  --output-stem derived\qc\segneuron-summary
-```
-
-β 对比图：
-
-```powershell
-python scripts\segneuron_visualize.py beta-sweep `
-  --raw derived\raw-model-grid.tif `
-  --instance 0.10=derived\beta-candidates\instances-beta-0p1.npy `
-  --instance 0.25=derived\beta-candidates\instances-beta-0p25.npy `
-  --instance 0.50=derived\beta-candidates\instances-beta-0p5.npy `
-  --instance 0.75=derived\beta-candidates\instances-beta-0p75.npy `
-  --selected-beta 0.25 `
-  --axis xy --index 9 `
-  --resolution-nm-zyx 50 8 8 `
-  --output-stem derived\qc\beta-sweep
-```
-
-默认同时输出 300 dpi PNG、可编辑文字的 SVG 和 PDF。图中颜色由 label ID 确定，所有候选保持一致；比例尺和正交切面的物理纵横比由 `resolution-nm-zyx` 标定。
-
-### syn178 真实 pilot 示例
-
-测试输入为 `syn178/raw[:18, :256, :256]`。在记录的元数据假设下，source grid 为 `50 × 4 × 4 nm`，模型 grid 为 `50 × 8 × 8 nm`，得到 `3 × 18 × 128 × 128` affinity。官方 SegNeuron FRMC 在 `β=0.25` 时得到 35 个三维非背景 instance；下图显示第 9 个 XY 切片，因此图中 `n_slice=10` 不等于全体积 instance 数量。
-
-![syn178 SegNeuron summary](examples/syn178-pilot/segneuron-summary.png)
-
-下图展示相同 affinity 在多个 β 下的实例粒度变化。由于本地 Windows 环境缺少官方 ELF/Vigra 二进制运行时，这张 β 教程图使用仓库测试时记录的 fallback 后处理器生成，仅用于展示比较与人工选择界面；正式任务应在目标 GPU 环境用同一个官方 FRMC adapter 重跑全部 β。高亮的 `β=0.25` 对应此前 pilot 设置，不代表通用推荐值。
-
-![syn178 beta sweep](examples/syn178-pilot/beta-sweep.png)
-
-该 pilot 的机器完整性检查通过，但质量审批仍为 **未通过 / withheld**：体积只有 18 个 z 切片、z 各向异性明显、物理分辨率来自待确认元数据，且没有神经元 instance ground truth。以上示例证明工作流、产物契约和可视化能够运行，不证明分割准确率或达到生产级重建质量。
-
-### 远程 GPU、输出与隐私
-
-模型代码、checkpoint、数据和环境保留在目标主机；配置中只记录固定 commit、checkpoint SHA-256 和非秘密运行参数。不要把 SSH 密码、私钥或 token 写入 YAML、命令、日志或仓库。
-
-所有派生产物写入独立 `output.root`。该仓库不会提交模型权重、原始/派生 EM volume、服务器凭据或运行环境。完整配置字段见 [`config-schema.md`](skills/segneuron-inference/references/config-schema.md)，远程部署见 [`deployment.md`](skills/segneuron-inference/references/deployment.md)。
-
-### 测试
-
-```powershell
-python -m unittest discover -s skills\segneuron-inference\tests -v
-```
+> Turn specialized EM analysis pipelines into reproducible workflows that AI Agents can execute, inspect, and verify.
 
 ---
 
-## English
+## Available Skills
 
-### What is included
+| Skill                                                        | Purpose                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------- |
+| [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
 
-`segneuron-inference` is a reproducible workflow for SegNeuron-based 3D neuron instance segmentation of volume EM. It covers metadata auditing, physical-grid planning, affinity inference, beta-controlled instance postprocessing, professional visualization, label restoration, and fail-closed quality gates.
+`segneuron-inference` is designed for datasets such as:
 
-### Install and invoke
+* FIB-SEM
+* SBF-SEM
+* ATUM-SEM
+* ssTEM
+* other serial-section or volume electron microscopy datasets
 
-Ask Codex:
+---
+
+## Installation
+
+In Codex, simply ask:
 
 ```text
 Install skills/segneuron-inference from the GitHub repository yanchaoz/EM-Skills.
 ```
 
-Then invoke it in natural language:
+Install the complete skill directory rather than copying only `SKILL.md`.
+
+After installation, start a new Codex task so the skill can be discovered.
+
+---
+
+## How to Use
+
+The skill can be invoked directly with natural language.
+
+For example:
 
 ```text
-Use the segneuron-inference skill on this zyx volume EM dataset. Audit its physical metadata,
-plan the model grid, run a pilot, generate candidates for beta=[0.10, 0.25, 0.50, 0.75],
-show me professional comparison overlays, wait for my beta choice, and only then create the final instances.
+Use the segneuron-inference skill on this zyx Volume EM dataset.
+
+First inspect the dataset shape, axis order, and physical voxel resolution.
+Plan the appropriate SegNeuron model grid based on the real physical resolution.
+
+Run a representative pilot before processing the full volume.
+
+Then perform affinity inference and generate several instance-segmentation candidates
+for beta = [0.10, 0.25, 0.50, 0.75].
+
+Create comparison figures at identical physical locations so I can inspect
+merge errors, split errors, fragmentation, foreground leakage, and z continuity.
+
+Wait for my beta selection before generating the final 3D instance segmentation.
+
+Finally restore the labels to the target resolution, verify the outputs,
+and generate quality-control visualizations.
 ```
 
-### Workflow and beta gate
+A shorter instruction also works:
 
-Run `audit → plan → pilot → infer → beta-sweep → select-beta → instance → restore → verify → finalize`. The external `commands.beta_sweep` adapter receives `{beta}` and `{beta_tag}`. After candidate review, `select-beta` records the user's decision together with the configuration digest; the final adapter receives `{selected_beta}` and `{selected_beta_tag}`. A configuration change invalidates the old selection.
+```text
+Use segneuron-inference on this Volume EM dataset.
+Run a pilot first, compare multiple beta values,
+wait for my selection, and then generate the final neuron instances.
+```
 
-The runner does not infer a preferred beta from object counts. Compare identical physical slices for merges, splits, fragments, z continuity, and foreground leakage. Dry-run job specifications are written unless `--execute` is supplied.
+---
 
-### Visualization
+## Standard Workflow
 
-`scripts/segneuron_visualize.py summary` creates a calibrated four-panel plate containing raw EM, z/y/x affinities, membrane evidence, and a deterministic instance overlay. `beta-sweep` accepts repeated `--instance BETA=PATH` arguments and highlights an optional recorded selection. It supports XY/XZ/YZ views and exports PNG, SVG, and PDF by default.
+The recommended workflow is:
 
-### syn178 pilot evidence
+```text
+Source Volume EM
+        ↓
+Data & Metadata Audit
+        ↓
+Physical Resolution Planning
+        ↓
+Representative Pilot
+        ↓
+SegNeuron Affinity Inference
+        ↓
+Multi-Beta Instance Candidates
+        ↓
+Visual Comparison
+        ↓
+Human Beta Selection
+        ↓
+Final 3D Instance Segmentation
+        ↓
+Label Restoration
+        ↓
+Verification & Quality Control
+        ↓
+Final Output
+```
 
-The real pilot used `syn178/raw[:18, :256, :256]`, mapped from an assumed `50 × 4 × 4 nm` source grid to a `50 × 8 × 8 nm` model grid. It produced three affinity channels at `18 × 128 × 128`. Official SegNeuron FRMC at `β=0.25` produced 35 non-background 3D instances; the summary figure above shows 10 labels intersecting one XY slice.
+### 1. Data audit
 
-The beta tutorial figure uses the documented fallback postprocessor because the local Windows environment lacked the official ELF/Vigra runtime. It demonstrates the comparison and selection mechanism, not an official FRMC benchmark. The recorded pilot passed machine-integrity checks but was not approved for scientific delivery because the z extent was shallow, voxel metadata remained an assumption, cross-z continuity was limited, and no neuron-instance ground truth was available.
+The skill first checks essential dataset information, including:
 
-### Safety and reproducibility
+* volume dimensions;
+* axis order;
+* voxel resolution;
+* physical units;
+* image characteristics;
+* compatibility with the model input grid.
 
-Keep the SegNeuron checkout, weights, data, credentials, and runtime outside this repository. Pin the repository commit and checkpoint SHA-256, keep the source read-only, write outputs to a separate root, use continuous interpolation only for raw/affinity data, and use nearest-neighbor restoration for label IDs.
+Physical metadata is treated as part of the scientific workflow rather than an optional implementation detail.
 
-See the [skill instructions](skills/segneuron-inference/SKILL.md), [configuration schema](skills/segneuron-inference/references/config-schema.md), and [deployment contract](skills/segneuron-inference/references/deployment.md) for the full specification.
+---
+
+### 2. Physical-resolution planning
+
+Volume EM datasets often have different voxel sizes and substantial z anisotropy.
+
+The skill therefore plans model input according to **physical resolution**, rather than simply resizing arrays based on image dimensions.
+
+This helps maintain consistent biological scale across datasets acquired with different microscopes or imaging protocols.
+
+---
+
+### 3. Pilot before full-volume processing
+
+A small representative region is processed first.
+
+The pilot is used to verify:
+
+* orientation;
+* resolution handling;
+* model compatibility;
+* affinity predictions;
+* segmentation behavior;
+* visualization;
+* downstream postprocessing.
+
+Only after the pilot is considered technically reasonable should the workflow proceed to larger-scale processing.
+
+---
+
+### 4. Affinity inference
+
+SegNeuron predicts affinity information describing local neuronal connectivity.
+
+The affinity output is then used as the basis for instance-level reconstruction.
+
+Inference and instance reconstruction are treated as separate stages so that failures can be diagnosed more clearly.
+
+---
+
+### 5. Multi-beta comparison
+
+Instance reconstruction can change substantially with the postprocessing parameter `beta`.
+
+Instead of silently using one predefined value, the skill can generate several candidates, for example:
+
+```text
+beta = 0.10
+beta = 0.25
+beta = 0.50
+beta = 0.75
+```
+
+All candidates are compared at the same physical locations.
+
+Important failure modes include:
+
+* merged neurites;
+* over-segmentation;
+* fragmented processes;
+* incorrect foreground expansion;
+* poor z continuity;
+* local topology errors.
+
+The workflow does **not** automatically select beta from the number of reconstructed objects.
+
+---
+
+### 6. Human selection
+
+The user reviews the candidate segmentations and explicitly chooses the preferred beta.
+
+This creates a deliberate human-in-the-loop checkpoint before final whole-volume reconstruction.
+
+A previously selected beta is not assumed to remain valid when the relevant configuration or data-processing settings change.
+
+---
+
+### 7. Final reconstruction
+
+After the user selects beta, the final 3D neuron instances are generated.
+
+The resulting segmentation can then be restored from the model grid to the desired output grid while preserving discrete instance identities.
+
+---
+
+### 8. Verification and quality control
+
+A completed run is not automatically considered scientifically validated.
+
+The workflow also checks whether outputs are internally consistent and whether the available evidence is sufficient for downstream use.
+
+A result may therefore be:
+
+* technically completed;
+* structurally valid;
+* but still withheld from scientific approval.
+
+This distinction is intentional.
+
+---
+
+## Result Visualization
+
+The skill provides standardized scientific visualizations for inspecting the complete SegNeuron workflow.
+
+A typical summary includes:
+
+1. raw EM;
+2. SegNeuron affinity prediction;
+3. membrane or boundary evidence;
+4. neuron instance overlay.
+
+Example:
+
+![syn178 SegNeuron summary](examples/syn178-pilot/segneuron-summary.png)
+
+The overlay uses deterministic instance colors so that the same instance can be followed consistently across slices and comparisons.
+
+Physical voxel resolution is also used when generating scale bars and orthogonal views.
+
+---
+
+## Beta Comparison
+
+The same affinity prediction can be reconstructed with multiple beta values and displayed side by side.
+
+Example:
+
+![syn178 beta sweep](examples/syn178-pilot/beta-sweep.png)
+
+This allows direct inspection of how instance topology changes as postprocessing becomes more or less aggressive.
+
+The selected beta should be based on segmentation quality rather than on object count alone.
+
+---
+
+## syn178 Pilot Example
+
+The repository includes a small pilot example based on:
+
+```text
+syn178/raw[:18, :256, :256]
+```
+
+Under the recorded metadata assumption:
+
+```text
+source grid: 50 × 4 × 4 nm
+model grid:  50 × 8 × 8 nm
+```
+
+the pilot produced a three-channel SegNeuron affinity volume and corresponding 3D neuron-instance candidates.
+
+Using the recorded pilot configuration at:
+
+```text
+beta = 0.25
+```
+
+the official SegNeuron FRMC postprocessor produced 35 non-background 3D instances.
+
+The example demonstrates that the complete workflow can be executed end to end.
+
+It does **not** claim production-level segmentation accuracy.
+
+---
+
+## Why the Pilot Is Not Considered Scientific Validation
+
+The syn178 example is intentionally treated as a workflow demonstration rather than a benchmark.
+
+Scientific approval remains withheld because:
+
+* only 18 z slices are included;
+* the dataset is strongly anisotropic;
+* the physical resolution is based on metadata that still requires confirmation;
+* the z extent is limited for evaluating long-range neuronal continuity;
+* neuron-instance ground truth is unavailable.
+
+In other words:
+
+> A workflow that runs successfully is not automatically a scientifically validated reconstruction.
+
+---
+
+## Design Principles
+
+EM-Skills follows several principles for scientific EM analysis.
+
+### Physical scale matters
+
+Model deployment should respect real voxel size and biological scale rather than relying only on array dimensions.
+
+### Pilot before scale
+
+A representative test volume should be processed before expensive whole-volume inference.
+
+### Separate prediction from reconstruction
+
+Affinity inference and neuron-instance reconstruction are different stages and should be inspected separately.
+
+### Human review for topology-sensitive decisions
+
+Some reconstruction parameters cannot be selected reliably from a single scalar statistic.
+
+### Preserve reproducibility
+
+Important model, data, physical-resolution, and postprocessing decisions should remain traceable.
+
+### Fail closed
+
+Missing metadata, incomplete outputs, or insufficient evidence should be reported rather than silently accepted.
+
+---
+
+## Intended Use
+
+EM-Skills is designed for research workflows involving:
+
+* connectomics;
+* neuronal reconstruction;
+* neuron instance segmentation;
+* organelle segmentation;
+* ultrastructural analysis;
+* large-scale Volume EM;
+* AI-assisted electron microscopy;
+* scientific EM quality control.
+
+The repository is intended to gradually expand into a broader collection of reusable EM-specific Agent Skills.
+
+---
+
+## Documentation
+
+For the full technical specification of the current skill, see:
+
+* [SegNeuron Inference Skill](skills/segneuron-inference/SKILL.md)
+* [Configuration Reference](skills/segneuron-inference/references/config-schema.md)
+* [Deployment Guide](skills/segneuron-inference/references/deployment.md)
+
+---
+
+## Repository Philosophy
+
+EM-Skills is not intended to be a repository of isolated inference scripts.
+
+It aims to package expert EM workflows into reusable Agent Skills that combine:
+
+```text
+Domain knowledge
+      +
+Model execution
+      +
+Physical-scale reasoning
+      +
+Human review
+      +
+Quality control
+      +
+Reproducibility
+```
+
+so that AI Agents can assist with EM reconstruction in a structured and scientifically responsible way.
+
+---
+
+## License
+
+See the repository license for usage and redistribution terms.
