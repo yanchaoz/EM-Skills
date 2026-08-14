@@ -1,0 +1,26 @@
+{
+  "shape_zyx": [
+    18,
+    128,
+    128
+  ],
+  "dtype": "uint32",
+  "object_count": 1,
+  "foreground_fraction": 0.012875027126736112,
+  "object_size_vox": {
+    "min": 3797,
+    "median": 3797.0,
+    "max": 3797
+  },
+  "z_span_slices": {
+    "min": 3,
+    "median": 3.0,
+    "max": 3
+  },
+  "border_touch_count": 0,
+  "display_indices": {
+    "xy_z": 13,
+    "xz_y": 51,
+    "selection": "max_foreground"
+  }
+}

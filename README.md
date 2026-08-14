@@ -19,6 +19,7 @@ The goal is simple:
 | Skill                                                        | Purpose                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
+| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial semantic and 3D instance segmentation |
 
 `segneuron-inference` is designed for datasets such as:
 
@@ -36,6 +37,7 @@ In Codex, simply ask:
 
 ```text
 Install skills/segneuron-inference from the GitHub repository yanchaoz/EM-Skills.
+Install skills/mitonet-inference from the GitHub repository yanchaoz/EM-Skills.
 ```
 
 Install the complete skill directory rather than copying only `SKILL.md`.
@@ -77,6 +79,18 @@ Use segneuron-inference on this Volume EM dataset.
 Run a pilot first, compare multiple beta values,
 wait for my selection, and then generate the final neuron instances.
 ```
+
+### MitoNet example
+
+```text
+Use the mitonet-inference skill on this zyx Volume EM dataset.
+Audit axis order and physical voxel resolution, then run a representative pilot.
+Compare named MitoNet profiles across plausible xy scales and thresholds.
+Render raw EM, mitochondrial foreground, instance overlays, and XZ continuity.
+Wait for my profile selection before full-volume inference and label restoration.
+```
+
+The MitoNet workflow keeps semantic foreground, per-plane panoptic instances, 3D stack matching, source-grid restoration, and scientific approval as separate gates.
 
 ---
 
@@ -309,6 +323,18 @@ In other words:
 
 ---
 
+## MitoNet syn178 Pilot
+
+The repository includes a remote MitoNet-mini workflow demonstration on `syn178/raw[:18, :256, :256]`. The 8 nm and 16 nm profiles detected the same mitochondrial candidate with binary-mask Dice `0.8710`; the 8 nm result retained a slightly larger boundary and one additional z slice.
+
+![syn178 MitoNet 8 nm QC](examples/syn178-mitonet-pilot/qc-scale-8nm.png)
+
+![syn178 MitoNet 16 nm QC](examples/syn178-mitonet-pilot/qc-scale-16nm.png)
+
+See the [MitoNet pilot record](examples/syn178-mitonet-pilot/README.md) for parameters, hashes, limitations, and vector figures. This is an execution and QC demonstration, not a ground-truth benchmark.
+
+---
+
 ## Design Principles
 
 EM-Skills follows several principles for scientific EM analysis.
@@ -363,6 +389,8 @@ For the full technical specification of the current skill, see:
 * [SegNeuron Inference Skill](skills/segneuron-inference/SKILL.md)
 * [Configuration Reference](skills/segneuron-inference/references/config-schema.md)
 * [Deployment Guide](skills/segneuron-inference/references/deployment.md)
+* [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
+* [MitoNet Configuration Reference](skills/mitonet-inference/references/config-schema.md)
 
 ---
 

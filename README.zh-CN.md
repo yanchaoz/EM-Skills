@@ -19,6 +19,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 | Skill                                                        | 功能                                 |
 | ------------------------------------------------------------ | ---------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | 基于 SegNeuron 的 Volume EM 三维神经元实例分割 |
+| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | 基于 MitoNet/Empanada 的线粒体语义与三维实例分割 |
 
 `segneuron-inference` 适用于：
 
@@ -36,6 +37,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 
 ```text
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/segneuron-inference。
+请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
 ```
 
 请安装完整的 Skill 目录，而不是只复制 `SKILL.md`。
@@ -82,6 +84,18 @@ beta = [0.10, 0.25, 0.50, 0.75]
 先运行 pilot，再比较多个 beta，
 等我确认后生成最终三维神经元实例分割。
 ```
+
+### MitoNet 调用示例
+
+```text
+请使用 mitonet-inference skill 处理这份 zyx Volume EM 数据。
+先审计轴顺序和真实 voxel resolution，再运行代表性 Pilot。
+比较不同 xy 尺度、阈值和后处理参数对应的 MitoNet profiles。
+生成原始 EM、线粒体前景、instance overlay 和 XZ 连续性图。
+等我选择 profile 后，再进行全体积推理和标签恢复。
+```
+
+MitoNet 工作流会分别检查 semantic foreground、逐切片 panoptic instance、三维 stack matching、source-grid 恢复和科研审批。
 
 ---
 
@@ -363,6 +377,18 @@ syn178 示例的主要目的是验证工作流，而不是作为 SegNeuron 的�
 
 ---
 
+## MitoNet syn178 Pilot
+
+仓库包含基于 `syn178/raw[:18, :256, :256]` 的远程 MitoNet-mini 工作流示例。8 nm 与 16 nm 两个 profile 检测到同一个线粒体候选，二值掩膜 Dice 为 `0.8710`；8 nm 结果保留了稍大的边界和额外一个 z 切片。
+
+![syn178 MitoNet 8 nm QC](examples/syn178-mitonet-pilot/qc-scale-8nm.png)
+
+![syn178 MitoNet 16 nm QC](examples/syn178-mitonet-pilot/qc-scale-16nm.png)
+
+参数、哈希、局限性和矢量图见 [MitoNet Pilot 记录](examples/syn178-mitonet-pilot/README.md)。该示例用于证明执行与 QC 链路，不是 ground-truth benchmark。
+
+---
+
 ## 设计原则
 
 EM-Skills 遵循几个基本原则。
@@ -435,6 +461,8 @@ EM-Skills 主要面向：
 * [SegNeuron Inference Skill](skills/segneuron-inference/SKILL.md)
 * [配置说明](skills/segneuron-inference/references/config-schema.md)
 * [部署说明](skills/segneuron-inference/references/deployment.md)
+* [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
+* [MitoNet 配置说明](skills/mitonet-inference/references/config-schema.md)
 
 ---
 
