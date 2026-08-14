@@ -1,22 +1,26 @@
 # EM-Skills
 
-面向电子显微镜（EM / volume EM）数据分析的可复用 Agent Skills。当前首个 skill 是 **SegNeuron Inference**：用于审计、规划、部署和验证基于 SegNeuron 的三维神经元实例分割流程。
+[中文](#中文) · [English](#english)
 
-## Skills
+面向电子显微镜（EM / volume EM）的可复用 Agent Skills。当前提供 `segneuron-inference`：从体素元数据审计、分辨率调整、SegNeuron affinity 推理，到多 β 实例后处理、专业可视化、标签恢复和质量门控。
+
+## 中文
+
+### 当前 Skill
 
 | Skill | 适用任务 | 入口 |
 | --- | --- | --- |
-| `segneuron-inference` | FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等体电镜数据的分辨率适配、SegNeuron affinity 推理、FRMC 实例化、标签恢复和质量控制 | [`skills/segneuron-inference/SKILL.md`](skills/segneuron-inference/SKILL.md) |
+| `segneuron-inference` | FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等体电镜数据的 SegNeuron 神经元实例分割 | [`skills/segneuron-inference/SKILL.md`](skills/segneuron-inference/SKILL.md) |
 
-## 安装到 Codex
+### 安装到 Codex
 
-在 Codex 中直接输入：
+在 Codex 中输入：
 
 ```text
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/segneuron-inference
 ```
 
-也可以手动安装。先克隆仓库，再把整个 skill 目录复制到 Codex skills 目录：
+或手动安装：
 
 ```powershell
 git clone https://github.com/yanchaoz/EM-Skills.git
@@ -25,160 +29,183 @@ Copy-Item -Recurse -Force `
   "$env:USERPROFILE\.codex\skills\segneuron-inference"
 ```
 
-重启 Codex 或新建一个任务，使其重新发现 skill。请保留完整目录结构；不要只复制 `SKILL.md`，因为工作流还依赖 `scripts/`、`references/` 和 `assets/`。
+重启 Codex 或新建任务以重新发现 skill。请复制完整目录，而不是只复制 `SKILL.md`。
 
-## 不安装，直接使用
+### 在 Codex 中调用
 
-下载或克隆仓库后，可以从 skill 目录直接运行编排器：
+```text
+请使用 segneuron-inference skill 审计这份 zyx 体电镜数据，按物理分辨率规划模型网格，
+运行 SegNeuron pilot；对 beta=[0.10, 0.25, 0.50, 0.75] 生成实例候选和对比图，
+让我选择 beta 后再生成正式 instance，并输出原图、亲和图、膜和 instance overlay。
+```
+
+### 标准工作流
+
+```text
+source raw → audit → model-grid plan → pilot → affinity inference
+           → beta sweep → user selects beta → final instance
+           → label restoration → verify → finalize
+```
 
 ```powershell
 cd EM-Skills\skills\segneuron-inference
 python scripts\segneuron_pipeline.py scaffold project.yaml
 python scripts\segneuron_pipeline.py audit project.yaml
 python scripts\segneuron_pipeline.py plan project.yaml
-```
-
-`scaffold` 会创建项目配置。若使用 YAML 配置，需要安装 PyYAML；也可以从 `assets/project.example.json` 开始，以避免该依赖。
-
-```powershell
-python -m pip install PyYAML
-```
-
-## 在 Codex 中调用
-
-安装后不需要记住 skill 名称；描述任务即可触发。例如：
-
-```text
-请用 SegNeuron 对这个 volume EM 数据做神经元实例分割。
-源数据是 D:\data\raw.npy，轴顺序 zyx，分辨率为 40×8×8 nm。
-先 audit 和 plan，只生成 dry-run 作业，不要立即执行模型。
-```
-
-明确调用也可以：
-
-```text
-请使用 segneuron-inference skill，审计数据元信息，规划模型网格，
-在代表性 ROI 上运行 pilot，通过后再生成 affinity 和 neuron instances，
-最后把标签恢复到源网格并完成 verify。
-```
-
-## 标准工作流
-
-```text
-source raw
-  -> audit
-  -> model-grid planning / resampling
-  -> pilot ROI
-  -> SegNeuron affinity inference
-  -> FRMC neuron instances
-  -> optional block reconciliation
-  -> nearest-neighbor label restoration
-  -> verification and delivery manifest
-```
-
-推荐按以下顺序运行：
-
-```powershell
-python scripts\segneuron_pipeline.py scaffold project.yaml
-python scripts\segneuron_pipeline.py audit project.yaml
-python scripts\segneuron_pipeline.py plan project.yaml
 python scripts\segneuron_pipeline.py pilot project.yaml
-python scripts\segneuron_pipeline.py infer project.yaml
 python scripts\segneuron_pipeline.py infer project.yaml --execute
+python scripts\segneuron_pipeline.py beta-sweep project.yaml       # 先审阅 dry-run jobs
+python scripts\segneuron_pipeline.py beta-sweep project.yaml --execute
+python scripts\segneuron_pipeline.py select-beta project.yaml --beta 0.25
 python scripts\segneuron_pipeline.py instance project.yaml --execute
 python scripts\segneuron_pipeline.py restore project.yaml --execute
 python scripts\segneuron_pipeline.py verify project.yaml
 python scripts\segneuron_pipeline.py finalize project.yaml
 ```
 
-其中 `infer`、`instance` 和 `restore` 默认是 dry-run：只生成经过渲染的作业规格，不会调用第三方代码；显式加入 `--execute` 后才会执行。
+`infer`、`beta-sweep`、`instance` 和 `restore` 默认只生成作业规格；必须显式添加 `--execute` 才会调用外部代码。配置更改后，旧的 β 选择会失效，必须重新比较和选择。
 
-## 配置 SegNeuron
-
-从 [`assets/project.example.yaml`](skills/segneuron-inference/assets/project.example.yaml) 或 JSON 示例复制一份项目配置，并至少填写：
-
-- 源数据 URI、格式、`zyx` shape、物理分辨率、offset 和 bbox；
-- 固定的 SegNeuron 仓库 commit；
-- 模型 checkpoint 路径及 SHA-256；
-- 模型目标分辨率、patch、halo 和 normalization 策略；
-- pilot ROI；
-- `infer`、`instance`、`restore` 的参数列表命令和工作目录；
-- 独立于源数据的输出目录。
-
-命令必须写成参数列表，而不是 shell 字符串。例如：
+### 配置多个 β，并让使用者选择
 
 ```yaml
+instance:
+  method: frmc
+  scope: whole-volume
+  label_dtype: uint64
+  background_id: 0
+  beta_sweep:
+    values: [0.10, 0.25, 0.50, 0.75]
+
 commands:
-  infer:
+  beta_sweep:
     argv:
       - python
-      - inference.py
-      - --config
-      - "{config_path}"
+      - adapters/run_frmc.py
+      - --affinities
+      - "{output_root}/affinities"
+      - --beta
+      - "{beta}"
+      - --output
+      - "{output_root}/beta-candidates/instances-beta-{beta_tag}.npy"
     cwd: "{repo_path}"
     env: {}
     expected_outputs:
-      - affinities
+      - "beta-candidates/instances-beta-{beta_tag}.npy"
+  instance:
+    argv:
+      - python
+      - adapters/run_frmc.py
+      - --beta
+      - "{selected_beta}"
+      - --output
+      - "{output_root}/instances-model-grid"
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs:
+      - instances-model-grid
 ```
 
-完整字段说明见 [`references/config-schema.md`](skills/segneuron-inference/references/config-schema.md)。SegNeuron 研究代码适配约定见 [`references/segneuron-adapter.md`](skills/segneuron-inference/references/segneuron-adapter.md)。
+`beta-sweep` 为每个 β 写出独立 candidate；`select-beta` 只接受配置中存在且输出完整的 candidate。Skill 不会根据 instance 数量自动挑 β。应在相同物理切片上审查 merge、split、fragment、z 向连续性及前景泄漏。
 
-## 远程 GPU / Connect / SSH
+### 专业可视化
 
-Skill 不保存服务器密码、SSH 私钥或 token。推荐流程是：
+四联图包含原始 EM、三通道 affinity、膜证据和 instance overlay：
 
-1. 在本地完成 `audit` 和 `plan`；
-2. 将数据、SegNeuron 代码、checkpoint 和配置放到远程 GPU 主机；
-3. 固定代码 commit、checkpoint SHA-256、Python/CUDA 环境和工作目录；
-4. 先生成并审核 dry-run 作业；
-5. 通过 Connect、SSH 或调度器执行，并把日志与产物写到 `output.root`；
-6. 拉回 QC 图和 manifest，完成 `verify`/`finalize`。
-
-远程适配、可恢复执行和日志要求见 [`references/deployment.md`](skills/segneuron-inference/references/deployment.md)。凭据应通过环境或安全凭据管理器提供，不能写入项目 YAML、命令参数、日志或仓库。
-
-## 输出在哪里
-
-所有派生产物都位于配置中的 `output.root`，典型内容包括：
-
-```text
-output.root/
-  audit/
-  plan/
-  jobs/
-  logs/
-  affinities/
-  instances-model-grid/
-  instances-source-grid/
-  qc/contact-sheet.png
-  verification/
-  delivery-manifest.json
+```powershell
+python scripts\segneuron_visualize.py summary `
+  --raw derived\raw-model-grid.tif `
+  --affinities derived\affinities.npy `
+  --membrane derived\boundaries.tif `
+  --membrane-mode interior `
+  --instances derived\instances-model-grid.npy `
+  --axis xy --index 9 `
+  --resolution-nm-zyx 50 8 8 `
+  --output-stem derived\qc\segneuron-summary
 ```
 
-实际目录名由项目配置决定。源数据必须保持只读，`output.root` 不能与源路径重叠。
+β 对比图：
 
-## 关键设计约束
+```powershell
+python scripts\segneuron_visualize.py beta-sweep `
+  --raw derived\raw-model-grid.tif `
+  --instance 0.10=derived\beta-candidates\instances-beta-0p1.npy `
+  --instance 0.25=derived\beta-candidates\instances-beta-0p25.npy `
+  --instance 0.50=derived\beta-candidates\instances-beta-0p5.npy `
+  --instance 0.75=derived\beta-candidates\instances-beta-0p75.npy `
+  --selected-beta 0.25 `
+  --axis xy --index 9 `
+  --resolution-nm-zyx 50 8 8 `
+  --output-stem derived\qc\beta-sweep
+```
 
-- SegNeuron 输出首先是 affinity，不是最终实例标签；
-- raw/affinity 可用连续插值，instance label 只能使用最近邻恢复；
-- z 分辨率默认保持不变，除非固定的模型 profile 和 pilot 证据支持调整；
-- per-block instances 在完成全局 ID 对齐前不能视为最终结果；
-- pilot 未通过时不得进入全量运行；
-- 权重、数据、运行环境和凭据均在仓库外管理。
+默认同时输出 300 dpi PNG、可编辑文字的 SVG 和 PDF。图中颜色由 label ID 确定，所有候选保持一致；比例尺和正交切面的物理纵横比由 `resolution-nm-zyx` 标定。
 
-## 测试
+### syn178 真实 pilot 示例
+
+测试输入为 `syn178/raw[:18, :256, :256]`。在记录的元数据假设下，source grid 为 `50 × 4 × 4 nm`，模型 grid 为 `50 × 8 × 8 nm`，得到 `3 × 18 × 128 × 128` affinity。官方 SegNeuron FRMC 在 `β=0.25` 时得到 35 个三维非背景 instance；下图显示第 9 个 XY 切片，因此图中 `n_slice=10` 不等于全体积 instance 数量。
+
+![syn178 SegNeuron summary](examples/syn178-pilot/segneuron-summary.png)
+
+下图展示相同 affinity 在多个 β 下的实例粒度变化。由于本地 Windows 环境缺少官方 ELF/Vigra 二进制运行时，这张 β 教程图使用仓库测试时记录的 fallback 后处理器生成，仅用于展示比较与人工选择界面；正式任务应在目标 GPU 环境用同一个官方 FRMC adapter 重跑全部 β。高亮的 `β=0.25` 对应此前 pilot 设置，不代表通用推荐值。
+
+![syn178 beta sweep](examples/syn178-pilot/beta-sweep.png)
+
+该 pilot 的机器完整性检查通过，但质量审批仍为 **未通过 / withheld**：体积只有 18 个 z 切片、z 各向异性明显、物理分辨率来自待确认元数据，且没有神经元 instance ground truth。以上示例证明工作流、产物契约和可视化能够运行，不证明分割准确率或达到生产级重建质量。
+
+### 远程 GPU、输出与隐私
+
+模型代码、checkpoint、数据和环境保留在目标主机；配置中只记录固定 commit、checkpoint SHA-256 和非秘密运行参数。不要把 SSH 密码、私钥或 token 写入 YAML、命令、日志或仓库。
+
+所有派生产物写入独立 `output.root`。该仓库不会提交模型权重、原始/派生 EM volume、服务器凭据或运行环境。完整配置字段见 [`config-schema.md`](skills/segneuron-inference/references/config-schema.md)，远程部署见 [`deployment.md`](skills/segneuron-inference/references/deployment.md)。
+
+### 测试
 
 ```powershell
 python -m unittest discover -s skills\segneuron-inference\tests -v
 ```
 
-测试覆盖配置审计、物理网格规划、dry-run/execute 边界、标签安全检查和最终交付门控。
+---
 
-## 仓库内容与隐私
+## English
 
-本仓库只包含 skill 指令、编排脚本、配置模板、参考文档和测试。不会提交：
+### What is included
 
-- SegNeuron 模型权重；
-- 原始或派生 EM 数据；
-- SSH 密码、私钥、token 或服务器配置；
-- 本地/远程运行日志和实验输出。
+`segneuron-inference` is a reproducible workflow for SegNeuron-based 3D neuron instance segmentation of volume EM. It covers metadata auditing, physical-grid planning, affinity inference, beta-controlled instance postprocessing, professional visualization, label restoration, and fail-closed quality gates.
 
+### Install and invoke
+
+Ask Codex:
+
+```text
+Install skills/segneuron-inference from the GitHub repository yanchaoz/EM-Skills.
+```
+
+Then invoke it in natural language:
+
+```text
+Use the segneuron-inference skill on this zyx volume EM dataset. Audit its physical metadata,
+plan the model grid, run a pilot, generate candidates for beta=[0.10, 0.25, 0.50, 0.75],
+show me professional comparison overlays, wait for my beta choice, and only then create the final instances.
+```
+
+### Workflow and beta gate
+
+Run `audit → plan → pilot → infer → beta-sweep → select-beta → instance → restore → verify → finalize`. The external `commands.beta_sweep` adapter receives `{beta}` and `{beta_tag}`. After candidate review, `select-beta` records the user's decision together with the configuration digest; the final adapter receives `{selected_beta}` and `{selected_beta_tag}`. A configuration change invalidates the old selection.
+
+The runner does not infer a preferred beta from object counts. Compare identical physical slices for merges, splits, fragments, z continuity, and foreground leakage. Dry-run job specifications are written unless `--execute` is supplied.
+
+### Visualization
+
+`scripts/segneuron_visualize.py summary` creates a calibrated four-panel plate containing raw EM, z/y/x affinities, membrane evidence, and a deterministic instance overlay. `beta-sweep` accepts repeated `--instance BETA=PATH` arguments and highlights an optional recorded selection. It supports XY/XZ/YZ views and exports PNG, SVG, and PDF by default.
+
+### syn178 pilot evidence
+
+The real pilot used `syn178/raw[:18, :256, :256]`, mapped from an assumed `50 × 4 × 4 nm` source grid to a `50 × 8 × 8 nm` model grid. It produced three affinity channels at `18 × 128 × 128`. Official SegNeuron FRMC at `β=0.25` produced 35 non-background 3D instances; the summary figure above shows 10 labels intersecting one XY slice.
+
+The beta tutorial figure uses the documented fallback postprocessor because the local Windows environment lacked the official ELF/Vigra runtime. It demonstrates the comparison and selection mechanism, not an official FRMC benchmark. The recorded pilot passed machine-integrity checks but was not approved for scientific delivery because the z extent was shallow, voxel metadata remained an assumption, cross-z continuity was limited, and no neuron-instance ground truth was available.
+
+### Safety and reproducibility
+
+Keep the SegNeuron checkout, weights, data, credentials, and runtime outside this repository. Pin the repository commit and checkpoint SHA-256, keep the source read-only, write outputs to a separate root, use continuous interpolation only for raw/affinity data, and use nearest-neighbor restoration for label IDs.
+
+See the [skill instructions](skills/segneuron-inference/SKILL.md), [configuration schema](skills/segneuron-inference/references/config-schema.md), and [deployment contract](skills/segneuron-inference/references/deployment.md) for the full specification.

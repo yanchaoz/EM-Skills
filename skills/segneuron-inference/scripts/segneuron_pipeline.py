@@ -24,8 +24,8 @@ import sys
 from typing import Any, Iterable, Mapping
 
 
-VERSION = "0.1.0"
-STAGES = ("audit", "plan", "pilot", "infer", "instance", "reconcile", "restore", "verify", "finalize")
+VERSION = "0.2.0"
+STAGES = ("audit", "plan", "pilot", "infer", "beta-sweep", "select-beta", "instance", "reconcile", "restore", "verify", "finalize")
 REMOTE_SCHEMES = ("precomputed://", "gs://", "s3://", "http://", "https://", "zarr://", "n5://")
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 MUTABLE_REVISIONS = {"main", "master", "latest", "head", "develop", "dev"}
@@ -265,6 +265,24 @@ def audit_config(config: Mapping[str, Any], config_path: Path) -> dict[str, Any]
     if scope == "per-block" and reconciliation.get("required") is not True:
         raise SkillError("per-block instances require global reconciliation")
 
+    beta_sweep = instance.get("beta_sweep")
+    if beta_sweep is not None:
+        if not isinstance(beta_sweep, Mapping):
+            raise SkillError("instance.beta_sweep must be a mapping")
+        values = beta_sweep.get("values")
+        if not isinstance(values, list) or len(values) < 2:
+            raise SkillError("instance.beta_sweep.values must contain at least two beta values")
+        normalized: list[float] = []
+        for value in values:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise SkillError("instance.beta_sweep.values must contain numbers")
+            beta = float(value)
+            if not 0.0 < beta < 1.0:
+                raise SkillError("Every beta value must be strictly between 0 and 1")
+            normalized.append(beta)
+        if len(set(normalized)) != len(normalized):
+            raise SkillError("instance.beta_sweep.values must be unique")
+
     output = require_mapping(config, "output")
     output_root = resolve_output_root(config, config_path)
     if local_source is not None:
@@ -288,6 +306,19 @@ def audit_config(config: Mapping[str, Any], config_path: Path) -> dict[str, Any]
         forbidden = [key for key in env if SECRET_KEY.search(str(key))]
         if forbidden:
             raise SkillError(f"Do not store secrets in commands.{name}.env: {forbidden}")
+    if beta_sweep is not None:
+        sweep_command = commands.get("beta_sweep")
+        final_command = commands.get("instance")
+        if not isinstance(sweep_command, Mapping):
+            raise SkillError("instance.beta_sweep requires commands.beta_sweep")
+        sweep_argv = sweep_command.get("argv", [])
+        sweep_outputs = sweep_command.get("expected_outputs", [])
+        if "{beta}" not in "\n".join(str(item) for item in sweep_argv):
+            raise SkillError("commands.beta_sweep.argv must use the {beta} placeholder")
+        if "{beta_tag}" not in "\n".join(str(item) for item in sweep_outputs):
+            raise SkillError("commands.beta_sweep.expected_outputs must use {beta_tag} to keep candidates separate")
+        if not isinstance(final_command, Mapping) or "{selected_beta}" not in "\n".join(str(item) for item in final_command.get("argv", [])):
+            raise SkillError("commands.instance.argv must use {selected_beta} when beta_sweep is configured")
 
     return {
         "pipeline_version": VERSION,
@@ -431,6 +462,35 @@ def command_context(config: Mapping[str, Any], config_path: Path) -> dict[str, s
     }
 
 
+def beta_values(config: Mapping[str, Any]) -> list[float]:
+    instance = require_mapping(config, "instance")
+    sweep = instance.get("beta_sweep")
+    if not isinstance(sweep, Mapping):
+        return []
+    values = sweep.get("values", [])
+    return [float(value) for value in values]
+
+
+def beta_tag(beta: float) -> str:
+    value = format(beta, ".12g")
+    return value.replace("-", "m").replace(".", "p")
+
+
+def beta_selection(config: Mapping[str, Any], config_path: Path) -> dict[str, Any]:
+    path = state_dir(config, config_path) / "beta-selection.json"
+    if not path.exists():
+        raise SkillError("No beta has been selected. Run select-beta before instance.")
+    selection = json.loads(path.read_text(encoding="utf-8"))
+    if selection.get("config_sha256") != config_digest(config):
+        raise SkillError("Beta selection belongs to a different configuration; rerun beta-sweep and select-beta")
+    selected = selection.get("selected_beta")
+    if isinstance(selected, bool) or not isinstance(selected, (int, float)):
+        raise SkillError("Invalid beta selection record")
+    if not any(math.isclose(float(selected), value, rel_tol=0, abs_tol=1e-12) for value in beta_values(config)):
+        raise SkillError("Selected beta is no longer present in instance.beta_sweep.values")
+    return selection
+
+
 def expected_paths(operation: Mapping[str, Any], config: Mapping[str, Any], config_path: Path, context: Mapping[str, str]) -> list[Path]:
     values = operation.get("expected_outputs", [])
     if not isinstance(values, list) or not all(isinstance(v, str) and v for v in values):
@@ -444,7 +504,12 @@ def expected_paths(operation: Mapping[str, Any], config: Mapping[str, Any], conf
     return paths
 
 
-def render_job(operation_name: str, config: Mapping[str, Any], config_path: Path) -> tuple[dict[str, Any], Mapping[str, Any]]:
+def render_job(
+    operation_name: str,
+    config: Mapping[str, Any],
+    config_path: Path,
+    context_overrides: Mapping[str, str] | None = None,
+) -> tuple[dict[str, Any], Mapping[str, Any]]:
     commands = require_mapping(config, "commands")
     operation = commands.get(operation_name)
     if not isinstance(operation, Mapping):
@@ -455,6 +520,7 @@ def render_job(operation_name: str, config: Mapping[str, Any], config_path: Path
     if not all(isinstance(item, str) and item for item in argv_source):
         raise SkillError(f"commands.{operation_name}.argv must contain nonempty strings")
     context = command_context(config, config_path)
+    context.update(dict(context_overrides or {}))
     argv = [item.format_map(StrictFormat(context)) for item in argv_source]
     cwd_value = str(operation.get("cwd", config_path.parent)).format_map(StrictFormat(context))
     cwd = resolve_local(cwd_value, config_path.parent)
@@ -479,10 +545,19 @@ def render_job(operation_name: str, config: Mapping[str, Any], config_path: Path
     return job, operation
 
 
-def run_job(operation_name: str, config: Mapping[str, Any], config_path: Path, execute: bool) -> dict[str, Any]:
-    job, operation = render_job(operation_name, config, config_path)
+def run_job(
+    operation_name: str,
+    config: Mapping[str, Any],
+    config_path: Path,
+    execute: bool,
+    *,
+    context_overrides: Mapping[str, str] | None = None,
+    record_name: str | None = None,
+) -> dict[str, Any]:
+    job, operation = render_job(operation_name, config, config_path, context_overrides)
     skill_state = state_dir(config, config_path)
-    job_path = skill_state / "jobs" / f"{operation_name}.json"
+    record_name = record_name or operation_name
+    job_path = skill_state / "jobs" / f"{record_name}.json"
     write_json(job_path, job)
     if not execute:
         return job
@@ -497,6 +572,7 @@ def run_job(operation_name: str, config: Mapping[str, Any], config_path: Path, e
         raise SkillError(f"Refusing to overwrite existing expected outputs: {existing}")
 
     context = command_context(config, config_path)
+    context.update(dict(context_overrides or {}))
     environment = os.environ.copy()
     environment.update({
         str(k): str(v).format_map(StrictFormat(context))
@@ -508,7 +584,7 @@ def run_job(operation_name: str, config: Mapping[str, Any], config_path: Path, e
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     run_id = dt.datetime.now().strftime("%Y%m%dT%H%M%S")
-    log_root = skill_state / "runs" / f"{operation_name}-{run_id}"
+    log_root = skill_state / "runs" / f"{record_name}-{run_id}"
     log_root.mkdir(parents=True, exist_ok=True)
     (log_root / "stdout.txt").write_text(completed.stdout, encoding="utf-8")
     (log_root / "stderr.txt").write_text(completed.stderr, encoding="utf-8")
@@ -687,7 +763,72 @@ def cmd_pilot(config: Mapping[str, Any], config_path: Path, execute: bool) -> di
     return report
 
 
+def cmd_beta_sweep(config: Mapping[str, Any], config_path: Path, execute: bool) -> dict[str, Any]:
+    require_stage(config, config_path, "infer", ("completed", "planned" if not execute else "completed"))
+    values = beta_values(config)
+    if len(values) < 2:
+        raise SkillError("Configure at least two instance.beta_sweep.values before beta-sweep")
+    jobs: list[dict[str, Any]] = []
+    for value in values:
+        tag = beta_tag(value)
+        job = run_job(
+            "beta_sweep",
+            config,
+            config_path,
+            execute,
+            context_overrides={"beta": format(value, ".12g"), "beta_tag": tag},
+            record_name=f"beta-sweep-{tag}",
+        )
+        jobs.append({"beta": value, "beta_tag": tag, "job": job})
+    report = {
+        "pipeline_version": VERSION,
+        "created_at": now_iso(),
+        "config_sha256": config_digest(config),
+        "candidates": jobs,
+        "selection_required": True,
+        "status": "completed" if execute else "planned",
+    }
+    path = state_dir(config, config_path) / "beta-sweep.json"
+    write_json(path, report)
+    update_state(config, config_path, "beta-sweep", report["status"], path, {"betas": values})
+    return report
+
+
+def cmd_select_beta(config: Mapping[str, Any], config_path: Path, selected_beta: float) -> dict[str, Any]:
+    require_stage(config, config_path, "beta-sweep", ("completed",))
+    values = beta_values(config)
+    matches = [value for value in values if math.isclose(value, selected_beta, rel_tol=0, abs_tol=1e-12)]
+    if not matches:
+        raise SkillError(f"beta {selected_beta} is not one of the configured candidates: {values}")
+    sweep_path = state_dir(config, config_path) / "beta-sweep.json"
+    sweep = json.loads(sweep_path.read_text(encoding="utf-8"))
+    candidate = next(
+        (item for item in sweep.get("candidates", []) if math.isclose(float(item["beta"]), matches[0], rel_tol=0, abs_tol=1e-12)),
+        None,
+    )
+    if candidate is None:
+        raise SkillError("Selected beta candidate is absent from beta-sweep.json; rerun beta-sweep")
+    missing = [value for value in candidate["job"].get("expected_outputs", []) if not Path(value).exists()]
+    if missing:
+        raise SkillError(f"Selected beta candidate is incomplete; missing outputs: {missing}")
+    report = {
+        "pipeline_version": VERSION,
+        "selected_at": now_iso(),
+        "config_sha256": config_digest(config),
+        "selected_beta": matches[0],
+        "selected_beta_tag": beta_tag(matches[0]),
+        "candidate_outputs": candidate["job"].get("expected_outputs", []),
+        "selected_by": "user",
+        "status": "completed",
+    }
+    path = state_dir(config, config_path) / "beta-selection.json"
+    write_json(path, report)
+    update_state(config, config_path, "select-beta", "completed", path, {"selected_beta": matches[0]})
+    return report
+
+
 def cmd_operation(name: str, config: Mapping[str, Any], config_path: Path, execute: bool) -> dict[str, Any]:
+    context_overrides: dict[str, str] = {}
     if name == "infer":
         require_stage(config, config_path, "plan")
         require_stage(config, config_path, "pilot", ("awaiting_review",))
@@ -695,6 +836,10 @@ def cmd_operation(name: str, config: Mapping[str, Any], config_path: Path, execu
             raise SkillError("verification.pilot_approved must be true before full inference")
     elif name == "instance":
         require_stage(config, config_path, "infer", ("completed", "planned" if not execute else "completed"))
+        if beta_values(config):
+            selection = beta_selection(config, config_path)
+            selected = float(selection["selected_beta"])
+            context_overrides = {"selected_beta": format(selected, ".12g"), "selected_beta_tag": beta_tag(selected)}
     elif name == "reconcile":
         if require_mapping(config, "instance").get("scope") != "per-block":
             raise SkillError("reconcile is only valid for instance.scope=per-block")
@@ -705,7 +850,7 @@ def cmd_operation(name: str, config: Mapping[str, Any], config_path: Path, execu
             require_stage(config, config_path, "reconcile", ("completed", "planned" if not execute else "completed"))
         else:
             require_stage(config, config_path, "instance", ("completed", "planned" if not execute else "completed"))
-    result = run_job(name, config, config_path, execute)
+    result = run_job(name, config, config_path, execute, context_overrides=context_overrides)
     status = "completed" if execute else "planned"
     job_path = state_dir(config, config_path) / "jobs" / f"{name}.json"
     update_state(config, config_path, name, status, job_path)
@@ -718,11 +863,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     scaffold_parser = subparsers.add_parser("scaffold", help="Copy the starter YAML/JSON project configuration")
     scaffold_parser.add_argument("config", type=Path)
-    for command in STAGES[:-1]:
+    for command in ("audit", "plan", "pilot", "infer", "instance", "reconcile", "restore", "verify"):
         child = subparsers.add_parser(command)
         child.add_argument("config", type=Path)
         if command in {"pilot", "infer", "instance", "reconcile", "restore"}:
             child.add_argument("--execute", action="store_true", help="Execute the reviewed local command adapter")
+    beta_sweep_parser = subparsers.add_parser("beta-sweep", help="Generate candidate instances for configured beta values")
+    beta_sweep_parser.add_argument("config", type=Path)
+    beta_sweep_parser.add_argument("--execute", action="store_true", help="Execute every reviewed beta candidate job")
+    select_beta_parser = subparsers.add_parser("select-beta", help="Record the user's selected beta")
+    select_beta_parser.add_argument("config", type=Path)
+    select_beta_parser.add_argument("--beta", type=float, required=True)
     finalize_parser = subparsers.add_parser("finalize")
     finalize_parser.add_argument("config", type=Path)
     return parser.parse_args(argv)
@@ -743,6 +894,10 @@ def main(argv: list[str] | None = None) -> int:
             result = cmd_plan(config, destination)
         elif args.command == "pilot":
             result = cmd_pilot(config, destination, args.execute)
+        elif args.command == "beta-sweep":
+            result = cmd_beta_sweep(config, destination, args.execute)
+        elif args.command == "select-beta":
+            result = cmd_select_beta(config, destination, args.beta)
         elif args.command in {"infer", "instance", "reconcile", "restore"}:
             result = cmd_operation(args.command, config, destination, args.execute)
         elif args.command == "verify":

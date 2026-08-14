@@ -23,12 +23,20 @@
   "commands": {
     "pilot": {"argv": [], "cwd": "{repo_path}", "env": {}, "expected_outputs": []},
     "infer": {"argv": [], "cwd": "{repo_path}", "env": {}, "expected_outputs": ["affinities"]},
-    "instance": {"argv": [], "cwd": "{repo_path}", "env": {}, "expected_outputs": ["instances-model-grid"]},
+    "beta_sweep": {
+      "argv": ["python", "adapters/run_frmc.py", "--affinities", "{output_root}/affinities", "--beta", "{beta}", "--output", "{output_root}/beta-candidates/instances-beta-{beta_tag}.npy"],
+      "cwd": "{repo_path}", "env": {}, "expected_outputs": ["beta-candidates/instances-beta-{beta_tag}.npy"]
+    },
+    "instance": {
+      "argv": ["python", "adapters/run_frmc.py", "--affinities", "{output_root}/affinities", "--beta", "{selected_beta}", "--output", "{output_root}/instances-model-grid"],
+      "cwd": "{repo_path}", "env": {}, "expected_outputs": ["instances-model-grid"]
+    },
     "reconcile": {"argv": [], "cwd": "{repo_path}", "env": {}, "expected_outputs": []},
     "restore": {"argv": [], "cwd": "{repo_path}", "env": {}, "expected_outputs": ["instances-source-grid"]}
   },
   "instance": {
     "method": "frmc", "scope": "whole-volume", "label_dtype": "uint64", "background_id": 0,
+    "beta_sweep": {"values": [0.10, 0.25, 0.50, 0.75]},
     "global_reconciliation": {"required": false, "completed": false, "artifact": ""}
   },
   "output": {
