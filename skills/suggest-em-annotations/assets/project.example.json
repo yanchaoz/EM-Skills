@@ -1,0 +1,45 @@
+{
+  "project": {
+    "id": "ac3-cgs-demo",
+    "purpose": "Select representative neuron-segmentation subvolumes for expert annotation"
+  },
+  "source": {
+    "uri": "file:///ABSOLUTE/PATH/ac3.tif",
+    "dataset_key": null,
+    "axes": "zyx",
+    "shape_zyx": [100, 1024, 1024],
+    "voxel_size_nm_zyx": [29.0, 6.0, 6.0],
+    "dtype": "uint8",
+    "source_sha256": "REPLACE_WITH_64_HEX_CHARACTERS"
+  },
+  "embedding": {
+    "model_repository": "https://github.com/yanchaoz/SL-SSNS",
+    "model_commit": "caa0ae6157be79fa1e39b047c10500c3c6f62cc0",
+    "checkpoint_name": "CGS/selection_model.ckpt",
+    "checkpoint_sha256": "fd430e366feb335fc4d6aea50ee0093601855f61faab4925ec39fc4f6f344908",
+    "dimension": 80,
+    "normalization": "uint8_divide_255"
+  },
+  "tiling": {
+    "patch_shape_zyx": [18, 160, 160],
+    "stride_zyx": [8, 40, 40],
+    "boundary_mode": "valid"
+  },
+  "selection": {
+    "budget_subvolumes": 4,
+    "window_patches_zyx": [1, 6, 6],
+    "expected_subvolume_shape_zyx": [18, 360, 360],
+    "k_neighbors": 30,
+    "metric": "euclidean",
+    "disallow_patch_overlap": true,
+    "max_exact_patches": 20000,
+    "max_working_memory_mib": 512
+  },
+  "guards": {
+    "excluded_bboxes_zyx": [],
+    "holdout_bboxes_zyx": [
+      [[82, 0, 0], [100, 1024, 1024]]
+    ],
+    "minimum_split_gap_voxels_zyx": [0, 0, 0]
+  }
+}

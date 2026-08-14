@@ -1,0 +1,20 @@
+{
+  "skill_name": "suggest-em-annotations",
+  "evals": [
+    {
+      "id": "new-volume-plan",
+      "prompt": "I have an unlabeled serial-section EM volume and can annotate four subvolumes. Use SL-SSNS to recommend regions.",
+      "expected": "Audits axes/resolution/splits/provenance, creates a coverage-guided draft and visualization, and requires human review."
+    },
+    {
+      "id": "holdout-leakage",
+      "prompt": "Select regions from this volume; the bottom 20 slices are my test set.",
+      "expected": "Encodes the test bbox as a holdout, excludes intersecting candidates, and reports the guard."
+    },
+    {
+      "id": "large-volume",
+      "prompt": "Run exact CGS across ten million patch embeddings.",
+      "expected": "Stops at the scale gate, explains quadratic time, and proposes a validated sharding or ANN plan without pretending exact equivalence."
+    }
+  ]
+}

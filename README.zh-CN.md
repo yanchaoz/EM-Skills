@@ -20,6 +20,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 | ------------------------------------------------------------ | ---------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | 基于 SegNeuron 的 Volume EM 三维神经元实例分割 |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | 基于 MitoNet/Empanada 的线粒体语义与三维实例分割 |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 SL-SSNS/CGS 的代表性子体块选择与人工标注建议 |
 
 `segneuron-inference` 适用于：
 
@@ -38,6 +39,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 ```text
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/segneuron-inference。
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
+请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/suggest-em-annotations。
 ```
 
 请安装完整的 Skill 目录，而不是只复制 `SKILL.md`。
@@ -96,6 +98,18 @@ beta = [0.10, 0.25, 0.50, 0.75]
 ```
 
 MitoNet 工作流会分别检查 semantic foreground、逐切片 panoptic instance、三维 stack matching、source-grid 恢复和科研审批。
+
+
+### SL-SSNS 标注建议调用示例
+
+```text
+请使用 suggest-em-annotations skill，从这份 zyx Volume EM 数据中规划 4 个神经元分割标注区域。
+先审计 voxel size、轴顺序、数据源身份和 holdout 范围；使用固定版本 SL-SSNS 编码器生成的 embedding，
+执行 coverage-guided 子体块选择，并绘制空间位置、embedding 覆盖、覆盖率曲线和人工审核队列。
+等待我逐个 accept/reject 后，再导出最终标注清单。
+```
+
+该工作流将 SL-SSNS 的 constrained coverage rate 目标封装成可审计的标注建议流程。它不会自动生成标签，会强制排除配置中的验证/测试区域，记录数据、模型和配置哈希，并在最终导出前要求具名人工审核。
 
 ---
 
@@ -463,6 +477,7 @@ EM-Skills 主要面向：
 * [部署说明](skills/segneuron-inference/references/deployment.md)
 * [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
 * [MitoNet 配置说明](skills/mitonet-inference/references/config-schema.md)
+* [SL-SSNS 标注建议 Skill](skills/suggest-em-annotations/SKILL.md) 与 [方法证据](skills/suggest-em-annotations/references/method-and-evidence.md)
 
 ---
 

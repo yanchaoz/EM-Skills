@@ -20,6 +20,7 @@ The goal is simple:
 | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial semantic and 3D instance segmentation |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | SL-SSNS/CGS-based representative subvolume selection for human annotation |
 
 `segneuron-inference` is designed for datasets such as:
 
@@ -38,6 +39,7 @@ In Codex, simply ask:
 ```text
 Install skills/segneuron-inference from the GitHub repository yanchaoz/EM-Skills.
 Install skills/mitonet-inference from the GitHub repository yanchaoz/EM-Skills.
+Install skills/suggest-em-annotations from the GitHub repository yanchaoz/EM-Skills.
 ```
 
 Install the complete skill directory rather than copying only `SKILL.md`.
@@ -91,6 +93,19 @@ Wait for my profile selection before full-volume inference and label restoration
 ```
 
 The MitoNet workflow keeps semantic foreground, per-plane panoptic instances, 3D stack matching, source-grid restoration, and scientific approval as separate gates.
+
+
+### SL-SSNS annotation advisor example
+
+```text
+Use the suggest-em-annotations skill to plan four neuron-segmentation annotation regions
+from this zyx Volume EM dataset. Audit voxel size, axes, source identity, and holdout bounds.
+Use embeddings from the pinned SL-SSNS encoder, run coverage-guided subvolume selection,
+and render the spatial map, embedding coverage, coverage curve, and review queue.
+Wait for explicit accept/reject decisions before exporting the final annotation manifest.
+```
+
+The workflow implements the SL-SSNS constrained coverage-rate objective as an auditable annotation advisor. It never turns selected regions into labels, excludes configured validation/test regions, records source/model/configuration hashes, and requires a named human reviewer before finalization.
 
 ---
 
@@ -391,6 +406,7 @@ For the full technical specification of the current skill, see:
 * [Deployment Guide](skills/segneuron-inference/references/deployment.md)
 * [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
 * [MitoNet Configuration Reference](skills/mitonet-inference/references/config-schema.md)
+* [SL-SSNS Annotation Advisor Skill](skills/suggest-em-annotations/SKILL.md) and [method evidence](skills/suggest-em-annotations/references/method-and-evidence.md)
 
 ---
 

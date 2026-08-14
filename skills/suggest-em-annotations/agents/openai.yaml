@@ -1,0 +1,4 @@
+interface:
+  display_name: "EM Annotation Advisor"
+  short_description: "Select representative volume EM subvolumes for annotation"
+  default_prompt: "Use $suggest-em-annotations to audit a volume EM dataset and generate a human-reviewed annotation suggestion queue."
