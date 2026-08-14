@@ -1,0 +1,15 @@
+{
+  "skill_name": "mitonet-inference",
+  "evals": [
+    {
+      "id": "anisotropic-stack-pilot",
+      "prompt": "Use MitoNet on an anisotropic zyx volume EM ROI. Audit resolution, compare stack profiles, ask me to select a profile, and do not claim accuracy without ground truth.",
+      "expected": ["preserves z by default", "uses profile selection gate", "separates integrity from accuracy"]
+    },
+    {
+      "id": "airgapped-remote",
+      "prompt": "Plan an air-gapped remote MitoNet pilot without installing the skill locally.",
+      "expected": ["pins repository and model hashes", "uses isolated remote runtime and wheelhouse", "does not store credentials"]
+    }
+  ]
+}

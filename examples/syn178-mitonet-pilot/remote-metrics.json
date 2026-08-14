@@ -1,0 +1,33 @@
+{
+  "raw_shape": [
+    18,
+    128,
+    128
+  ],
+  "candidates": {
+    "scale-8nm": {
+      "shape": [
+        18,
+        128,
+        128
+      ],
+      "dtype": "uint32",
+      "object_count": 1,
+      "foreground_fraction": 0.015964084201388888,
+      "size_vox_median": 4708.0,
+      "z_span_median": 4.0
+    },
+    "scale-16nm": {
+      "shape": [
+        18,
+        128,
+        128
+      ],
+      "dtype": "uint32",
+      "object_count": 1,
+      "foreground_fraction": 0.012875027126736112,
+      "size_vox_median": 3797.0,
+      "z_span_median": 3.0
+    }
+  }
+}
