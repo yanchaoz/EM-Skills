@@ -1,4 +1,4 @@
 interface:
   display_name: "SegNeuron Inference"
-  short_description: "Audit, deploy, and verify SegNeuron neuron instance segmentation"
-  default_prompt: "Audit this 3D EM volume, plan the model grid, run a SegNeuron pilot, generate affinities and neuron instances, restore labels to the source grid, and verify the result."
+  short_description: "Audit, compare beta candidates, visualize, and verify SegNeuron instances"
+  default_prompt: "Audit this 3D EM volume, plan the model grid, run a SegNeuron pilot, generate affinities, compare configured beta candidates with professional overlays, ask me to select beta, then generate and verify the final neuron instances."

@@ -45,11 +45,19 @@ def base_config(root: Path) -> dict:
                 "argv": ["tool", "--config", "{config_path}"], "cwd": str(root), "env": {},
                 "expected_outputs": ["affinities"],
             },
-            "instance": {"argv": ["tool"], "cwd": str(root), "env": {}, "expected_outputs": ["instances"]},
+            "beta_sweep": {
+                "argv": ["tool", "--beta", "{beta}", "--tag", "{beta_tag}"],
+                "cwd": str(root), "env": {}, "expected_outputs": ["beta-{beta_tag}.npy"],
+            },
+            "instance": {
+                "argv": ["tool", "--beta", "{selected_beta}"], "cwd": str(root), "env": {},
+                "expected_outputs": ["instances"],
+            },
             "restore": {"argv": ["tool"], "cwd": str(root), "env": {}, "expected_outputs": ["restored"]},
         },
         "instance": {
             "method": "frmc", "scope": "whole-volume", "label_dtype": "uint64", "background_id": 0,
+            "beta_sweep": {"values": [0.1, 0.25, 0.5]},
             "global_reconciliation": {"required": False, "completed": False, "artifact": ""},
         },
         "output": {
@@ -131,6 +139,37 @@ class PipelineTests(unittest.TestCase):
             config["instance"]["scope"] = "per-block"
             with self.assertRaisesRegex(pipeline.SkillError, "require global reconciliation"):
                 pipeline.audit_config(config, root / "project.json")
+
+    def test_beta_values_are_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = base_config(root)
+            config["instance"]["beta_sweep"]["values"] = [0.25, 1.0]
+            with self.assertRaisesRegex(pipeline.SkillError, "strictly between 0 and 1"):
+                pipeline.audit_config(config, root / "project.json")
+
+    def test_beta_sweep_requires_explicit_selection_before_instance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = base_config(root)
+            config_path = root / "project.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            pipeline.update_state(config, config_path, "infer", "completed")
+            sweep = pipeline.cmd_beta_sweep(config, config_path, execute=False)
+            self.assertEqual([item["beta"] for item in sweep["candidates"]], [0.1, 0.25, 0.5])
+            self.assertIn("0.25", sweep["candidates"][1]["job"]["argv"])
+            with self.assertRaisesRegex(pipeline.SkillError, "No beta has been selected"):
+                pipeline.cmd_operation("instance", config, config_path, execute=False)
+
+            for candidate in sweep["candidates"]:
+                Path(candidate["job"]["expected_outputs"][0]).write_bytes(b"candidate")
+            sweep["status"] = "completed"
+            pipeline.write_json(pipeline.state_dir(config, config_path) / "beta-sweep.json", sweep)
+            pipeline.update_state(config, config_path, "beta-sweep", "completed")
+            selection = pipeline.cmd_select_beta(config, config_path, 0.25)
+            self.assertEqual(selection["selected_beta"], 0.25)
+            job = pipeline.cmd_operation("instance", config, config_path, execute=False)
+            self.assertEqual(job["argv"][-1], "0.25")
 
     def test_verification_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

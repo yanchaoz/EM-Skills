@@ -52,9 +52,9 @@ Each operation contains:
 - `env`: optional non-secret environment mapping;
 - `expected_outputs`: files or directories required after success.
 
-Supported placeholders include `{config_path}`, `{output_root}`, `{plan_path}`, `{source_uri}`, `{checkpoint}`, and `{repo_path}`. Unknown placeholders fail before execution.
+Supported placeholders include `{config_path}`, `{output_root}`, `{plan_path}`, `{source_uri}`, `{checkpoint}`, and `{repo_path}`. `commands.beta_sweep` additionally receives `{beta}` and filesystem-safe `{beta_tag}`; `commands.instance` receives `{selected_beta}` and `{selected_beta_tag}` when a sweep is configured. Unknown placeholders fail before execution.
 
-Operations are `infer`, `instance`, `reconcile`, and `restore`. An empty operation remains a documented manual gate and cannot be executed by the bundled runner.
+Operations are `infer`, `beta_sweep`, `instance`, `reconcile`, and `restore`. An empty operation remains a documented manual gate and cannot be executed by the bundled runner.
 
 ### `instance`
 
@@ -62,6 +62,7 @@ Operations are `infer`, `instance`, `reconcile`, and `restore`. An empty operati
 - `scope`: `whole-volume` or `per-block`.
 - `label_dtype`: `uint32` or `uint64`.
 - `background_id`: must normally be 0.
+- `beta_sweep.values`: optional list of at least two unique values strictly between 0 and 1. Each value creates a separate candidate; the orchestrator never chooses automatically.
 - `global_reconciliation.required`: true for `per-block`.
 - `global_reconciliation.completed`: false until a reconciliation job succeeds.
 - `global_reconciliation.artifact`: global label volume or reconciliation manifest.
@@ -90,6 +91,8 @@ The orchestrator writes under `output.root/_segneuron_skill/`:
 - `audit.json`
 - `plan.json`
 - `pilot.json`
+- `beta-sweep.json`
+- `beta-selection.json`
 - `jobs/*.json`
 - `runs/*.json`
 - `verification.json`
