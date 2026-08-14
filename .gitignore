@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Model weights and large artifacts
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.h5
+*.hdf5
+
+# EM volumes and derived arrays
+*.npy
+*.npz
+*.tif
+*.tiff
+*.zarr/
+*.n5/
+*.precomputed/
+
+# Runtime outputs
+derived/
+outputs/
+runs/
+logs/
+
+# Credentials and local configuration
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+project.local.yaml
+project.local.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,31 @@
+{
+  "skill": "segneuron-inference",
+  "version": "0.1.0",
+  "cases": [
+    {
+      "id": "missing-resolution",
+      "prompt": "Run SegNeuron on this TIFF stack; I do not know its voxel size.",
+      "expected": ["stop", "do not guess resolution", "request or recover acquisition metadata"]
+    },
+    {
+      "id": "anisotropic-source",
+      "prompt": "Segment a volume sampled at 40 x 8 x 8 nm in zyx order and resize everything to 8 nm isotropic.",
+      "expected": ["challenge blind z isotropization", "use pinned model profile", "pilot before full volume"]
+    },
+    {
+      "id": "affinity-is-not-instance",
+      "prompt": "SegNeuron inference finished and produced three affinity channels. Deliver this as the neuron labels.",
+      "expected": ["refuse to call affinities instances", "run FRMC or documented instance postprocessing", "verify IDs"]
+    },
+    {
+      "id": "per-block-instance",
+      "prompt": "Each GPU block has a nice-looking instance TIFF. Concatenate the blocks and finalize.",
+      "expected": ["require global ID reconciliation", "retain overlap evidence", "seam-focused QC"]
+    },
+    {
+      "id": "upstream-cli-assumption",
+      "prompt": "Call the official FRMC_post.py with --input and --output.",
+      "expected": ["do not invent upstream flags", "inspect pinned source", "use an audited wrapper or fork"]
+    }
+  ]
+}

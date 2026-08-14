@@ -1,0 +1,101 @@
+project:
+  id: example-neuron-volume
+  description: Replace every placeholder before running audit.
+
+source:
+  uri: data/raw-em.npy
+  format: npy
+  axis_order: zyx
+  shape_zyx: [200, 1024, 1024]
+  resolution_nm_zyx: [40, 8, 8]
+  offset_vox_zyx: [0, 0, 0]
+  bbox_vox_zyx: [0, 0, 0, 200, 1024, 1024]
+  read_only: true
+  identity: replace-with-source-checksum-or-version
+
+model:
+  repository: yanchaoz/SegNeuron
+  repo_path: external/SegNeuron
+  repo_commit: replace-with-pinned-commit
+  checkpoint: external/checkpoints/segneuron.pth
+  checkpoint_sha256: 0000000000000000000000000000000000000000000000000000000000000000
+  profile:
+    target_resolution_nm_zyx: [40, 8, 8]
+    validated_xy_nm: [5, 10]
+    z_policy: preserve
+    normalization: replace-with-pinned-config-policy
+    patch_zyx: [20, 128, 128]
+    halo_zyx: [4, 16, 16]
+
+planning:
+  tile_core_zyx: [12, 96, 96]
+  max_end_error_nm: 4
+  pilot_rois:
+    - [20, 128, 128, 60, 512, 512]
+  estimated_bytes_per_affinity_voxel: 12
+  estimated_bytes_per_instance_voxel: 8
+
+commands:
+  pilot:
+    argv: []
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs: []
+  infer:
+    argv: []
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs:
+      - affinities
+  instance:
+    argv: []
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs:
+      - instances-model-grid
+  reconcile:
+    argv: []
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs: []
+  restore:
+    argv: []
+    cwd: "{repo_path}"
+    env: {}
+    expected_outputs:
+      - instances-source-grid
+
+instance:
+  method: frmc
+  scope: whole-volume
+  label_dtype: uint64
+  background_id: 0
+  global_reconciliation:
+    required: false
+    completed: false
+    artifact: ""
+
+output:
+  root: derived/example-neuron-volume
+  affinity_uri: affinities
+  instance_model_grid_uri: instances-model-grid
+  instance_source_grid_uri: instances-source-grid
+  allow_overwrite: false
+
+verification:
+  required_artifacts:
+    - affinities
+    - instances-model-grid
+    - instances-source-grid
+    - qc/contact-sheet.png
+  ground_truth_uri: null
+  manual_sample_count: 20
+  pilot_approved: false
+  severe_issue_count: null
+  checks:
+    bounds_match: false
+    dtype_safe: false
+    ids_valid: false
+    seams_reviewed: false
+    provenance_complete: false
+    orthogonal_views_reviewed: false
