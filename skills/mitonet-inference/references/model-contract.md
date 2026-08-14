@@ -2,7 +2,7 @@
 
 ## Identity
 
-This skill targets the MitoNet model described by Conrad and Narayan, *Cell Systems* 14(1), 58?71.e5 (2023), DOI `10.1016/j.cels.2022.12.006`, and its official software repositories:
+This skill targets the MitoNet model described by Conrad and Narayan, *Cell Systems* 14(1), 58–71.e5 (2023), DOI `10.1016/j.cels.2022.12.006`, and its official software repositories:
 
 - `volume-em/empanada`: core algorithms; GPL-2.0 repository license.
 - `volume-em/empanada-napari`: deployment/plugin layer; BSD-3-Clause repository license.
@@ -36,7 +36,7 @@ Published applications and benchmarks often standardize near-isotropic volume EM
 - median kernel: smooths semantic predictions through a stack; its physical span depends on voxel size.
 - merge IoU / IoA: match or merge instances between adjacent slices.
 - pixel vote and cluster IoU: govern orthoplane consensus.
-- minimum size and minimum span: remove small objects and thin ?pancakes?; convert their voxel units to physical interpretation before freezing.
+- minimum size and minimum span: remove small objects and thin “pancakes”; convert their voxel units to physical interpretation before freezing.
 
 ## Known error modes
 

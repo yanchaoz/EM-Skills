@@ -76,7 +76,7 @@ The adapter invokes the pinned official `scripts/pdl_inference3d.py`; it does no
 
 Each `inference.profiles` entry freezes the model grid, model variant, inference mode, thresholds, matching, consensus, and object filters. Profile candidates must use separate output paths via `{profile}`. Review raw overlays on the same XY slices and, for 3D data, XZ/YZ continuity. Selection writes `_mitonet_skill/profile-selection.json` with the configuration digest. A configuration change invalidates the selection.
 
-Do not interpret ?more instances? or ?larger foreground fraction? as better. Inspect false positives on ER/Golgi/vesicles, missed low-contrast mitochondria, merges between apposed mitochondria, oversplits of elongated mitochondria, pancakes, boundary truncation, and topology through z.
+Do not interpret “more instances” or “larger foreground fraction” as better. Inspect false positives on ER/Golgi/vesicles, missed low-contrast mitochondria, merges between apposed mitochondria, oversplits of elongated mitochondria, pancakes, boundary truncation, and topology through z.
 
 ## Visualization and QC
 

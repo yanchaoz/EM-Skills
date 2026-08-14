@@ -68,7 +68,7 @@ def extent(axis: str, shape: tuple[int, int], resolution: list[float]) -> tuple[
     candidates = np.asarray([0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20])
     available = candidates[candidates <= values[1] * 0.28]
     bar = float(available[-1] if available.size else values[1] * 0.2)
-    label = f"{bar:g} ?m" if bar >= 1 else f"{bar * 1000:g} nm"
+    label = f"{bar:g} µm" if bar >= 1 else f"{bar * 1000:g} nm"
     return values, bar, label
 
 
@@ -142,7 +142,7 @@ def main() -> int:
         values, _, _ = extent(axis, image.shape[:2], args.resolution_nm_zyx)
         ax.imshow(image, cmap=cmap, extent=values, interpolation="nearest", aspect="equal")
         decorate(ax, chr(97 + index), title, axis, image.shape[:2], args.resolution_nm_zyx)
-    fig.suptitle("MitoNet pilot ? integrity and continuity QC", x=0.01, ha="left", fontsize=8, weight="bold")
+    fig.suptitle("MitoNet pilot · integrity and continuity QC", x=0.01, ha="left", fontsize=8, weight="bold")
     args.output_stem.parent.mkdir(parents=True, exist_ok=True)
     suffixes = {"png": ".png", "svg": ".svg", "pdf": ".pdf", "tiff": ".tiff"}
     for fmt in args.formats:

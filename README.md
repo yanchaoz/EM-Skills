@@ -2,7 +2,7 @@
 
 **Reusable Agent Skills for Electron Microscopy (EM / Volume EM)**
 
-English | [????](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
 EM-Skills is a collection of reusable Agent Skills for professional electron microscopy analysis.
 
@@ -100,27 +100,27 @@ The recommended workflow is:
 
 ```text
 Source Volume EM
-        ?
+        ↓
 Data & Metadata Audit
-        ?
+        ↓
 Physical Resolution Planning
-        ?
+        ↓
 Representative Pilot
-        ?
+        ↓
 SegNeuron Affinity Inference
-        ?
+        ↓
 Multi-Beta Instance Candidates
-        ?
+        ↓
 Visual Comparison
-        ?
+        ↓
 Human Beta Selection
-        ?
+        ↓
 Final 3D Instance Segmentation
-        ?
+        ↓
 Label Restoration
-        ?
+        ↓
 Verification & Quality Control
-        ?
+        ↓
 Final Output
 ```
 
@@ -285,8 +285,8 @@ syn178/raw[:18, :256, :256]
 Under the recorded metadata assumption:
 
 ```text
-source grid: 50 ? 4 ? 4 nm
-model grid:  50 ? 8 ? 8 nm
+source grid: 50 × 4 × 4 nm
+model grid:  50 × 8 × 8 nm
 ```
 
 the pilot produced a three-channel SegNeuron affinity volume and corresponding 3D neuron-instance candidates.
