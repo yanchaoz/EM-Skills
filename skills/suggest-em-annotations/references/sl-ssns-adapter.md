@@ -1,5 +1,7 @@
 # Official SL-SSNS adapter
 
+This is a separate legacy/public-paper route. Do not use it for the requested AC3AC4 EMFoundation BASE run; that run uses `emfoundation-adapter.md` and produces 512-D embeddings.
+
 Use this route only when the user asks to run the official encoder or already has a compatible environment. Do not install dependencies or execute remote code by default.
 
 ## Pin and verify

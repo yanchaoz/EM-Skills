@@ -22,6 +22,12 @@ The paper reports 18×160×160 input patches, 8×40×40 sliding stride, 80-dimen
 
 The publication supports CGS as a one-shot representative-selection heuristic and reports downstream improvements on its evaluated datasets. It does not establish that a chosen region is uncertain, biologically rare, correctly segmented, artifact-free, or optimal for every new dataset. A new dataset needs held-out evaluation and random/equispaced baselines before making efficiency claims.
 
+## Local EMFoundation BASE evidence
+
+The audited Figure2 UMAP script uses a different operational encoder contract from the public 80-D CGS checkpoint: `PNIv2_head.UNet_PNI([32,64,128,256,512])`, patch `32×128×128`, stride `16×64×64`, and a 512-D pooled center feature loaded from `Pretraining_mito/models/BASE/learner.ckpt`. The Skill's EMFoundation adapter reproduces that local contract because it is the model requested for AC3AC4 testing. It does not claim that this 512-D representation is identical to the paper's 80-D selection encoder.
+
+Variable-size selection is a new budgeted extension implemented by this Skill. The paper motivates contiguous embedding-coverage selection and dataset-dependent subvolume sizes, but does not validate the exact multi-scale knapsack heuristic used here.
+
 ## Audited implementation discrepancies and risks
 
 - `CGS/CGS_tools.py` slices loaded volumes with `[:100]`; this silently discards later z slices for larger inputs.
@@ -34,7 +40,8 @@ The publication supports CGS as a one-shot representative-selection heuristic an
 ## Decision record
 
 - Implement only the annotation-selection component, because the requested outcome is annotation advice rather than full IIC-Net training.
-- Preserve the paper's CCR semantics and deterministic greedy selection.
+- Preserve CCR neighborhood coverage, but expose a separate multi-scale, cost-aware greedy objective for variable-size boxes.
+- Use the locally audited 512-D EMFoundation BASE adapter for the specified AC3AC4 workflow; retain the public 80-D CGS adapter only as a separate legacy/reference route.
 - Use blocked exact KNN to bound working memory while disclosing quadratic time.
 - Require explicit geometry, provenance, holdout guards, and human review.
 - Avoid embedding the SL-SSNS checkpoint or repository code in this skill; use a pinned external adapter when requested.

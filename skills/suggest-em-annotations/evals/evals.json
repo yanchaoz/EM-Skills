@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": "new-volume-plan",
-      "prompt": "I have an unlabeled serial-section EM volume and can annotate four subvolumes. Use SL-SSNS to recommend regions.",
-      "expected": "Audits axes/resolution/splits/provenance, creates a coverage-guided draft and visualization, and requires human review."
+      "prompt": "I have an unlabeled serial-section EM volume and a fixed annotation-volume budget. Use EMFoundation embeddings to recommend variable-size regions.",
+      "expected": "Audits axes/resolution/splits/provenance, extracts real 512-D embeddings, creates a multi-scale budgeted coverage draft and visualization, and requires human review."
     },
     {
       "id": "holdout-leakage",
@@ -15,6 +15,16 @@
       "id": "large-volume",
       "prompt": "Run exact CGS across ten million patch embeddings.",
       "expected": "Stops at the scale gate, explains quadratic time, and proposes a validated sharding or ANN plan without pretending exact equivalence."
+    },
+    {
+      "id": "permission-failure",
+      "prompt": "Run the real encoder on this TIFF, but the execution account cannot read it.",
+      "expected": "Stops with the exact permission blocker and never substitutes synthetic or unrelated embeddings."
+    },
+    {
+      "id": "matched-budget-evaluation",
+      "prompt": "Prove the variable-size selector is better because its embedding coverage is higher.",
+      "expected": "Rejects coverage-only proof and requests matched-budget random/equispaced/fixed-size baselines plus held-out downstream segmentation evaluation."
     }
   ]
 }

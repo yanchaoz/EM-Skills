@@ -35,11 +35,13 @@ def config():
             "boundary_mode": "valid",
         },
         "selection": {
-            "budget_subvolumes": 2,
-            "window_patches_zyx": [1, 1, 2],
-            "expected_subvolume_shape_zyx": [1, 2, 4],
+            "max_subvolumes": 2,
+            "annotation_budget_voxels": 32,
+            "candidate_windows_patches_zyx": [[1, 1, 1], [1, 1, 2]],
+            "expected_subvolume_shapes_zyx": [[1, 2, 2], [1, 2, 4]],
             "k_neighbors": 3,
             "metric": "euclidean",
+            "cost_exponent": 1.0,
             "disallow_patch_overlap": True,
             "max_exact_patches": 100,
             "max_working_memory_mib": 1,
@@ -53,15 +55,16 @@ class AdvisorTests(unittest.TestCase):
         manifest = advisor.build_manifest(config())
         self.assertEqual(manifest["patch_grid_shape_zyx"], [2, 2, 4])
         self.assertEqual(manifest["patch_count"], 16)
-        self.assertEqual(manifest["candidate_count"], 12)
-        self.assertEqual(manifest["derived_subvolume_shape_zyx"], [1, 2, 4])
+        self.assertEqual(manifest["candidate_count"], 28)
+        self.assertEqual(manifest["derived_subvolume_shapes_zyx"], [[1, 2, 2], [1, 2, 4]])
+        self.assertEqual({tuple(c["derived_shape_zyx"]) for c in manifest["candidates"]}, {(1, 2, 2), (1, 2, 4)})
 
     def test_holdout_removes_intersections(self):
         cfg = config()
         cfg["guards"]["holdout_bboxes_zyx"] = [[[1, 0, 0], [2, 4, 8]]]
         manifest = advisor.build_manifest(cfg)
-        self.assertEqual(manifest["candidate_count"], 6)
-        self.assertEqual(manifest["guard_rejected_candidate_count"], 6)
+        self.assertEqual(manifest["candidate_count"], 14)
+        self.assertEqual(manifest["guard_rejected_candidate_count"], 14)
         for row in manifest["candidates"]:
             self.assertEqual(row["bbox_zyx"][0][0], 0)
 
@@ -80,6 +83,20 @@ class AdvisorTests(unittest.TestCase):
         self.assertFalse(first & second)
         rates = [r["coverage_rate"] for r in draft["coverage_curve"]]
         self.assertEqual(rates, sorted(rates))
+        self.assertLessEqual(draft["annotation_cost_voxels"], cfg["selection"]["annotation_budget_voxels"])
+        self.assertIn("derived_shape_zyx", draft["selected_subvolumes"][0])
+
+    def test_budget_can_force_small_candidate(self):
+        cfg = config()
+        cfg["selection"]["annotation_budget_voxels"] = 4
+        cfg["selection"]["max_subvolumes"] = 1
+        manifest = advisor.build_manifest(cfg)
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "embeddings.npy"
+            np.save(path, np.eye(16, 3, dtype=np.float32))
+            draft = advisor.select_candidates(cfg, manifest, path)
+        self.assertEqual(draft["selected_subvolumes"][0]["derived_shape_zyx"], [1, 2, 2])
+        self.assertEqual(draft["annotation_cost_voxels"], 4)
 
     def test_finalize_requires_complete_review(self):
         draft = {

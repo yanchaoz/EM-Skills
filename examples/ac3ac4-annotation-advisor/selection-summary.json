@@ -1,0 +1,167 @@
+{
+  "status": "PASS_REAL_DATA_DRAFT_REQUIRES_HUMAN_REVIEW",
+  "patch_count": 3375,
+  "candidate_count": 8410,
+  "candidate_count_by_size": {
+    "s00-1x3x3": 2535,
+    "s01-1x5x5": 1815,
+    "s02-2x3x3": 2366,
+    "s03-2x5x5": 1694
+  },
+  "selected_count": 6,
+  "annotation_budget_voxels": 24000000,
+  "annotation_cost_voxels": 22806528,
+  "coverage_rate": 0.4962963,
+  "selected_subvolumes": [
+    {
+      "rank": 1,
+      "candidate_id": "sv-s02-2x3x3-0001-0008-0001",
+      "derived_shape_zyx": [
+        48,
+        256,
+        256
+      ],
+      "bbox_zyx": [
+        [
+          16,
+          512,
+          64
+        ],
+        [
+          64,
+          768,
+          320
+        ]
+      ],
+      "annotation_cost_voxels": 3145728,
+      "newly_covered_patch_count": 339,
+      "cumulative_coverage_rate": 0.10044444
+    },
+    {
+      "rank": 2,
+      "candidate_id": "sv-s02-2x3x3-0007-0001-0007",
+      "derived_shape_zyx": [
+        48,
+        256,
+        256
+      ],
+      "bbox_zyx": [
+        [
+          112,
+          64,
+          448
+        ],
+        [
+          160,
+          320,
+          704
+        ]
+      ],
+      "annotation_cost_voxels": 3145728,
+      "newly_covered_patch_count": 291,
+      "cumulative_coverage_rate": 0.18666667
+    },
+    {
+      "rank": 3,
+      "candidate_id": "sv-s02-2x3x3-0003-0006-0012",
+      "derived_shape_zyx": [
+        48,
+        256,
+        256
+      ],
+      "bbox_zyx": [
+        [
+          48,
+          384,
+          768
+        ],
+        [
+          96,
+          640,
+          1024
+        ]
+      ],
+      "annotation_cost_voxels": 3145728,
+      "newly_covered_patch_count": 261,
+      "cumulative_coverage_rate": 0.264
+    },
+    {
+      "rank": 4,
+      "candidate_id": "sv-s03-2x5x5-0010-0000-0002",
+      "derived_shape_zyx": [
+        48,
+        384,
+        384
+      ],
+      "bbox_zyx": [
+        [
+          160,
+          0,
+          128
+        ],
+        [
+          208,
+          384,
+          512
+        ]
+      ],
+      "annotation_cost_voxels": 7077888,
+      "newly_covered_patch_count": 436,
+      "cumulative_coverage_rate": 0.39318519
+    },
+    {
+      "rank": 5,
+      "candidate_id": "sv-s02-2x3x3-0000-0001-0012",
+      "derived_shape_zyx": [
+        48,
+        256,
+        256
+      ],
+      "bbox_zyx": [
+        [
+          0,
+          64,
+          768
+        ],
+        [
+          48,
+          320,
+          1024
+        ]
+      ],
+      "annotation_cost_voxels": 3145728,
+      "newly_covered_patch_count": 179,
+      "cumulative_coverage_rate": 0.44622222
+    },
+    {
+      "rank": 6,
+      "candidate_id": "sv-s02-2x3x3-0013-0008-0005",
+      "derived_shape_zyx": [
+        48,
+        256,
+        256
+      ],
+      "bbox_zyx": [
+        [
+          208,
+          512,
+          320
+        ],
+        [
+          256,
+          768,
+          576
+        ]
+      ],
+      "annotation_cost_voxels": 3145728,
+      "newly_covered_patch_count": 169,
+      "cumulative_coverage_rate": 0.4962963
+    }
+  ],
+  "sha256": {
+    "audit.json": "3ba790a06805424b5de4687bc82e9274b8b75c818b4bea1a959dce3b6d94a508",
+    "candidates.json": "980886fdc0cc27b3deda714fd20b294383f5a22082cff18c52794e7a2aec2fab",
+    "draft_selection.json": "833088d23cf4ee20cc99211a8d892ca4985b78e80cd3a3b5f5a44f701deb57ef",
+    "selection_overview.png": "37d599617f42c30173fb88970ff267a271b06b4b3f2716d4751bbdb86578be67"
+  }
+}

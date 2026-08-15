@@ -19,8 +19,8 @@ from typing import Any, Iterable
 import numpy as np
 
 
-SCHEMA_VERSION = "1.0"
-TOOL_VERSION = "0.1.0"
+SCHEMA_VERSION = "2.0"
+TOOL_VERSION = "0.2.0"
 
 
 class AdviceError(ValueError):
@@ -139,23 +139,43 @@ def validate_config(cfg: dict[str, Any]) -> dict[str, Any]:
         raise AdviceError("embedding.checkpoint_sha256 must be a 64-character hexadecimal SHA-256")
 
     selection = cfg["selection"]
-    window = _triplet(selection.get("window_patches_zyx"), "selection.window_patches_zyx")
-    budget = int(selection.get("budget_subvolumes", 0))
+    raw_windows = selection.get("candidate_windows_patches_zyx")
+    if raw_windows is None:
+        legacy = selection.get("window_patches_zyx")
+        raw_windows = [legacy] if legacy is not None else None
+    if not isinstance(raw_windows, list) or not raw_windows:
+        raise AdviceError("selection.candidate_windows_patches_zyx must be a non-empty list of [z,y,x] windows")
+    windows = [_triplet(value, f"selection.candidate_windows_patches_zyx[{i}]") for i, value in enumerate(raw_windows)]
+    if len({tuple(v) for v in windows}) != len(windows):
+        raise AdviceError("selection.candidate_windows_patches_zyx contains duplicates")
+    max_items = int(selection.get("max_subvolumes", selection.get("budget_subvolumes", 0)))
+    budget_voxels = int(selection.get("annotation_budget_voxels", 0))
     k = int(selection.get("k_neighbors", 0))
-    if budget <= 0:
-        raise AdviceError("selection.budget_subvolumes must be positive")
+    if max_items <= 0:
+        raise AdviceError("selection.max_subvolumes must be positive")
+    if budget_voxels <= 0:
+        legacy_budget = int(selection.get("budget_subvolumes", 0))
+        if legacy_budget > 0 and len(windows) == 1:
+            derived = [patch[i] + stride[i] * (windows[0][i] - 1) for i in range(3)]
+            budget_voxels = legacy_budget * math.prod(derived)
+        else:
+            raise AdviceError("selection.annotation_budget_voxels must be positive for variable-size selection")
     if k <= 0:
         raise AdviceError("selection.k_neighbors must be positive")
     if selection.get("metric", "euclidean") not in {"euclidean", "cosine"}:
         raise AdviceError("selection.metric must be euclidean or cosine")
+    cost_exponent = float(selection.get("cost_exponent", 1.0))
+    if not 0.0 <= cost_exponent <= 1.0:
+        raise AdviceError("selection.cost_exponent must be between 0 and 1")
 
-    derived_shape = [patch[i] + stride[i] * (window[i] - 1) for i in range(3)]
-    expected = selection.get("expected_subvolume_shape_zyx")
-    if expected is not None and _triplet(expected, "selection.expected_subvolume_shape_zyx") != derived_shape:
-        raise AdviceError(
-            "expected_subvolume_shape_zyx does not match patch + stride*(window-1): "
-            f"expected {expected}, derived {derived_shape}"
-        )
+    derived_shapes = [[patch[i] + stride[i] * (window[i] - 1) for i in range(3)] for window in windows]
+    expected = selection.get("expected_subvolume_shapes_zyx")
+    if expected is not None:
+        if not isinstance(expected, list) or len(expected) != len(derived_shapes):
+            raise AdviceError("selection.expected_subvolume_shapes_zyx must match the candidate-window list length")
+        checked = [_triplet(value, f"selection.expected_subvolume_shapes_zyx[{i}]") for i, value in enumerate(expected)]
+        if checked != derived_shapes:
+            raise AdviceError(f"expected_subvolume_shapes_zyx={checked} differs from derived={derived_shapes}")
 
     excluded = [_bbox(v, f"guards.excluded_bboxes_zyx[{i}]") for i, v in enumerate(cfg.get("guards", {}).get("excluded_bboxes_zyx", []))]
     holdouts = [_bbox(v, f"guards.holdout_bboxes_zyx[{i}]") for i, v in enumerate(cfg.get("guards", {}).get("holdout_bboxes_zyx", []))]
@@ -171,10 +191,12 @@ def validate_config(cfg: dict[str, Any]) -> dict[str, Any]:
         "patch": patch,
         "stride": stride,
         "boundary": boundary,
-        "window": window,
-        "derived_shape": derived_shape,
-        "derived_nm": [round(derived_shape[i] * voxel_nm[i], 6) for i in range(3)],
-        "budget": budget,
+        "windows": windows,
+        "derived_shapes": derived_shapes,
+        "derived_nm": [[round(shape[i] * voxel_nm[i], 6) for i in range(3)] for shape in derived_shapes],
+        "budget_voxels": budget_voxels,
+        "max_items": max_items,
+        "cost_exponent": cost_exponent,
         "k": k,
         "excluded": excluded,
         "holdouts": holdouts,
@@ -200,8 +222,9 @@ def build_manifest(cfg: dict[str, Any], config_path: Path | None = None) -> dict
         for i in range(3)
     ]
     grid_shape = [len(v) for v in starts]
-    if any(grid_shape[i] < audit["window"][i] for i in range(3)):
-        raise AdviceError(f"candidate window {audit['window']} exceeds patch grid {grid_shape}")
+    for window in audit["windows"]:
+        if any(grid_shape[i] < window[i] for i in range(3)):
+            raise AdviceError(f"candidate window {window} exceeds patch grid {grid_shape}")
 
     patches: list[dict[str, Any]] = []
     grid_to_patch: dict[tuple[int, int, int], int] = {}
@@ -221,39 +244,52 @@ def build_manifest(cfg: dict[str, Any], config_path: Path | None = None) -> dict
 
     candidates: list[dict[str, Any]] = []
     rejected_guard_count = 0
-    wz, wy, wx = audit["window"]
-    for gz in range(grid_shape[0] - wz + 1):
-        for gy in range(grid_shape[1] - wy + 1):
-            for gx in range(grid_shape[2] - wx + 1):
-                patch_ids = [
-                    grid_to_patch[(iz, iy, ix)]
-                    for iz in range(gz, gz + wz)
-                    for iy in range(gy, gy + wy)
-                    for ix in range(gx, gx + wx)
-                ]
-                first = patches[patch_ids[0]]["bbox_zyx"][0]
-                last = patches[patch_ids[-1]]["bbox_zyx"][1]
-                box = [first, last]
-                if any(bbox_intersects(box, guard) for guard in audit["excluded"] + audit["holdouts"]):
-                    rejected_guard_count += 1
-                    continue
-                cid = f"sv-{gz:04d}-{gy:04d}-{gx:04d}"
-                candidates.append({
-                    "candidate_id": cid,
-                    "grid_start_zyx": [gz, gy, gx],
-                    "patch_ids": patch_ids,
-                    "bbox_zyx": box,
-                    "bbox_nm_zyx": bbox_physical_nm(box, audit["voxel_nm"]),
-                })
+    counts_by_size: dict[str, int] = {}
+    for size_index, (window, derived_shape) in enumerate(zip(audit["windows"], audit["derived_shapes"])):
+        wz, wy, wx = window
+        size_id = f"s{size_index:02d}-{wz}x{wy}x{wx}"
+        counts_by_size[size_id] = 0
+        for gz in range(grid_shape[0] - wz + 1):
+            for gy in range(grid_shape[1] - wy + 1):
+                for gx in range(grid_shape[2] - wx + 1):
+                    patch_ids = [
+                        grid_to_patch[(iz, iy, ix)]
+                        for iz in range(gz, gz + wz)
+                        for iy in range(gy, gy + wy)
+                        for ix in range(gx, gx + wx)
+                    ]
+                    first = patches[patch_ids[0]]["bbox_zyx"][0]
+                    last = patches[patch_ids[-1]]["bbox_zyx"][1]
+                    box = [first, last]
+                    if any(bbox_intersects(box, guard) for guard in audit["excluded"] + audit["holdouts"]):
+                        rejected_guard_count += 1
+                        continue
+                    cid = f"sv-{size_id}-{gz:04d}-{gy:04d}-{gx:04d}"
+                    cost_voxels = math.prod(last[i] - first[i] for i in range(3))
+                    candidates.append({
+                        "candidate_id": cid,
+                        "size_id": size_id,
+                        "window_patches_zyx": window,
+                        "derived_shape_zyx": derived_shape,
+                        "grid_start_zyx": [gz, gy, gx],
+                        "patch_ids": patch_ids,
+                        "bbox_zyx": box,
+                        "bbox_nm_zyx": bbox_physical_nm(box, audit["voxel_nm"]),
+                        "annotation_cost_voxels": cost_voxels,
+                    })
+                    counts_by_size[size_id] += 1
 
-    if len(candidates) < audit["budget"]:
-        raise AdviceError(f"only {len(candidates)} candidates remain after guards, below budget {audit['budget']}")
+    if not candidates:
+        raise AdviceError("no eligible candidates remain after guards")
+    min_cost = min(row["annotation_cost_voxels"] for row in candidates)
+    if min_cost > audit["budget_voxels"]:
+        raise AdviceError(f"annotation budget {audit['budget_voxels']} voxels is below the smallest candidate cost {min_cost}")
 
     warnings: list[str] = []
     if audit["boundary"] == "reflect":
         warnings.append("reflect mode requires embeddings from the same reflected patch grid; clipped boxes do not imply unpadded inference")
-    if audit["derived_shape"] == [18, 480, 480] and audit["patch"] == [18, 160, 160] and audit["stride"] == [8, 40, 40]:
-        warnings.append("public SL-SSNS config derives 18x480x480 subvolumes, which differs from several 18x380x380 paper experiments")
+    if len(audit["windows"]) == 1:
+        warnings.append("only one candidate window is configured; selection is fixed-size rather than variable-size")
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -269,8 +305,11 @@ def build_manifest(cfg: dict[str, Any], config_path: Path | None = None) -> dict
         "patch_count": len(patches),
         "candidate_count": len(candidates),
         "guard_rejected_candidate_count": rejected_guard_count,
-        "derived_subvolume_shape_zyx": audit["derived_shape"],
-        "derived_subvolume_size_nm_zyx": audit["derived_nm"],
+        "candidate_windows_patches_zyx": audit["windows"],
+        "derived_subvolume_shapes_zyx": audit["derived_shapes"],
+        "derived_subvolume_sizes_nm_zyx": audit["derived_nm"],
+        "candidate_count_by_size": counts_by_size,
+        "annotation_budget_voxels": audit["budget_voxels"],
         "patches": patches,
         "candidates": candidates,
         "warnings": warnings,
@@ -310,7 +349,12 @@ def _candidate_patch_set(candidate: dict[str, Any]) -> set[int]:
     return set(int(v) for v in candidate["patch_ids"])
 
 
-def select_candidates(cfg: dict[str, Any], manifest: dict[str, Any], embeddings_path: Path) -> dict[str, Any]:
+def select_candidates(
+    cfg: dict[str, Any],
+    manifest: dict[str, Any],
+    embeddings_path: Path,
+    positions_path: Path | None = None,
+) -> dict[str, Any]:
     audit = validate_config(cfg)
     embeddings = np.load(embeddings_path, allow_pickle=False)
     if embeddings.ndim != 2:
@@ -321,6 +365,13 @@ def select_candidates(cfg: dict[str, Any], manifest: dict[str, Any], embeddings_
         raise AdviceError(f"embedding dimension {embeddings.shape[1]} != configured {cfg['embedding']['dimension']}")
     if not np.isfinite(embeddings).all():
         raise AdviceError("embeddings contain NaN or Inf")
+    positions_hash = None
+    if positions_path is not None:
+        positions = np.load(positions_path, allow_pickle=False)
+        expected = np.asarray([row["bbox_zyx"][0] for row in manifest["patches"]], dtype=np.int64)
+        if positions.shape != expected.shape or not np.array_equal(positions.astype(np.int64, copy=False), expected):
+            raise AdviceError("positions_zyx does not exactly match manifest patch order")
+        positions_hash = file_sha256(positions_path)
 
     limit = int(cfg["selection"].get("max_exact_patches", 20000))
     if embeddings.shape[0] > limit:
@@ -333,37 +384,55 @@ def select_candidates(cfg: dict[str, Any], manifest: dict[str, Any], embeddings_
 
     candidates = manifest["candidates"]
     patch_sets = [_candidate_patch_set(c) for c in candidates]
+    candidate_cover_ids = [
+        np.unique(neighbors[np.asarray(candidate["patch_ids"], dtype=np.int64)].reshape(-1))
+        for candidate in candidates
+    ]
     selected_indices: list[int] = []
     selected_patches: set[int] = set()
     covered = np.zeros(embeddings.shape[0], dtype=bool)
     curve: list[dict[str, Any]] = []
     selected_records: list[dict[str, Any]] = []
     disallow_overlap = bool(cfg["selection"].get("disallow_patch_overlap", True))
+    consumed_voxels = 0
 
-    for rank in range(1, audit["budget"] + 1):
+    for rank in range(1, audit["max_items"] + 1):
         best_idx: int | None = None
-        best_gain = -1
+        best_key: tuple[float, int, int] | None = None
+        best_gain = 0
         best_cover_ids: np.ndarray | None = None
         for idx, candidate in enumerate(candidates):
             if idx in selected_indices:
                 continue
             if disallow_overlap and patch_sets[idx] & selected_patches:
                 continue
-            candidate_neighbors = np.unique(neighbors[np.asarray(candidate["patch_ids"], dtype=np.int64)].reshape(-1))
+            cost = int(candidate["annotation_cost_voxels"])
+            if consumed_voxels + cost > audit["budget_voxels"]:
+                continue
+            candidate_neighbors = candidate_cover_ids[idx]
             gain = int(np.count_nonzero(~covered[candidate_neighbors]))
-            if gain > best_gain:
+            if gain <= 0:
+                continue
+            score = gain / (cost ** audit["cost_exponent"])
+            key = (score, gain, -cost)
+            if best_key is None or key > best_key:
                 best_idx = idx
+                best_key = key
                 best_gain = gain
                 best_cover_ids = candidate_neighbors
         if best_idx is None or best_cover_ids is None:
-            raise AdviceError(f"selection stopped after {rank - 1} items; no eligible non-overlapping candidate remains")
+            break
         selected_indices.append(best_idx)
         selected_patches.update(patch_sets[best_idx])
         covered[best_cover_ids] = True
         record = dict(candidates[best_idx])
+        consumed_voxels += int(record["annotation_cost_voxels"])
         record.update({
             "rank": rank,
             "newly_covered_patch_count": best_gain,
+            "marginal_coverage_per_cost": round(float(best_key[0]), 12),
+            "cumulative_annotation_cost_voxels": consumed_voxels,
+            "remaining_annotation_budget_voxels": audit["budget_voxels"] - consumed_voxels,
             "cumulative_covered_patch_count": int(covered.sum()),
             "cumulative_coverage_rate": round(float(covered.mean()), 8),
             "review_status": "pending",
@@ -373,9 +442,15 @@ def select_candidates(cfg: dict[str, Any], manifest: dict[str, Any], embeddings_
             "rank": rank,
             "candidate_id": record["candidate_id"],
             "newly_covered_patch_count": best_gain,
+            "selected_shape_zyx": record["derived_shape_zyx"],
+            "annotation_cost_voxels": record["annotation_cost_voxels"],
+            "cumulative_annotation_cost_voxels": consumed_voxels,
             "covered_patch_count": int(covered.sum()),
             "coverage_rate": round(float(covered.mean()), 8),
         })
+
+    if not selected_records:
+        raise AdviceError("no candidate could be selected within the annotation budget and overlap constraints")
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -390,15 +465,22 @@ def select_candidates(cfg: dict[str, Any], manifest: dict[str, Any], embeddings_
         "candidate_manifest_sha256": json_sha256(manifest),
         "embedding_file": str(embeddings_path.resolve()),
         "embedding_sha256": file_sha256(embeddings_path),
+        "positions_file": str(positions_path.resolve()) if positions_path else None,
+        "positions_sha256": positions_hash,
         "method": {
-            "name": "coverage-based greedy selection",
-            "paper_name": "constrained coverage rate (CCR)",
+            "name": "multi-scale budgeted coverage greedy selection",
+            "paper_name": "CCR-inspired budgeted maximum coverage",
             "metric": cfg["selection"].get("metric", "euclidean"),
             "k_neighbors_including_self": audit["k"],
             "exact_knn": True,
-            "tie_break": "stable candidate_id order",
+            "cost_exponent": audit["cost_exponent"],
+            "objective": "marginal newly covered patches / annotation_cost_voxels^cost_exponent",
+            "tie_break": "score, gain, lower cost, stable manifest order",
             "disallow_patch_overlap": disallow_overlap,
         },
+        "annotation_budget_voxels": audit["budget_voxels"],
+        "annotation_cost_voxels": consumed_voxels,
+        "remaining_annotation_budget_voxels": audit["budget_voxels"] - consumed_voxels,
         "patch_count": manifest["patch_count"],
         "candidate_count": manifest["candidate_count"],
         "selected_subvolumes": selected_records,
@@ -469,8 +551,8 @@ def audit_report(cfg: dict[str, Any]) -> dict[str, Any]:
     starts = [axis_starts(audit["shape"][i], audit["patch"][i], audit["stride"][i], audit["boundary"]) for i in range(3)]
     grid = [len(s) for s in starts]
     patch_count = math.prod(grid)
-    candidate_grid = [grid[i] - audit["window"][i] + 1 for i in range(3)]
-    candidate_count_before_guards = math.prod(candidate_grid) if all(v > 0 for v in candidate_grid) else 0
+    candidate_grids = [[grid[i] - window[i] + 1 for i in range(3)] for window in audit["windows"]]
+    counts = [math.prod(candidate_grid) if all(v > 0 for v in candidate_grid) else 0 for candidate_grid in candidate_grids]
     return {
         "status": "PASS",
         "axes": "zyx",
@@ -478,13 +560,17 @@ def audit_report(cfg: dict[str, Any]) -> dict[str, Any]:
         "voxel_size_nm_zyx": audit["voxel_nm"],
         "patch_grid_shape_zyx": grid,
         "patch_count": patch_count,
-        "candidate_grid_shape_zyx": candidate_grid,
-        "candidate_count_before_guards": candidate_count_before_guards,
-        "derived_subvolume_shape_zyx": audit["derived_shape"],
-        "derived_subvolume_size_nm_zyx": audit["derived_nm"],
+        "candidate_windows_patches_zyx": audit["windows"],
+        "candidate_grid_shapes_zyx": candidate_grids,
+        "candidate_count_before_guards_by_size": counts,
+        "candidate_count_before_guards": sum(counts),
+        "derived_subvolume_shapes_zyx": audit["derived_shapes"],
+        "derived_subvolume_sizes_nm_zyx": audit["derived_nm"],
         "estimated_dense_pairwise_gib_float32": round(patch_count * patch_count * 4 / 1024**3, 4),
         "exact_knn_time_complexity": "O(N^2)",
-        "budget_subvolumes": audit["budget"],
+        "annotation_budget_voxels": audit["budget_voxels"],
+        "max_subvolumes": audit["max_items"],
+        "cost_exponent": audit["cost_exponent"],
         "k_neighbors_including_self": audit["k"],
         "holdout_box_count": len(audit["holdouts"]),
         "excluded_box_count": len(audit["excluded"]),
@@ -504,6 +590,7 @@ def parse_args() -> argparse.Namespace:
     select_p.add_argument("--config", type=Path, required=True)
     select_p.add_argument("--manifest", type=Path, required=True)
     select_p.add_argument("--embeddings", type=Path, required=True)
+    select_p.add_argument("--positions", type=Path, help="optional positions_zyx.npy; exact row-order verification is strongly recommended")
     select_p.add_argument("--out", type=Path, required=True)
     final_p = sub.add_parser("finalize", help="apply complete human review decisions")
     final_p.add_argument("--draft", type=Path, required=True)
@@ -527,7 +614,7 @@ def main() -> int:
         elif args.command == "select":
             cfg = load_config(args.config)
             manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-            draft = select_candidates(cfg, manifest, args.embeddings)
+            draft = select_candidates(cfg, manifest, args.embeddings, args.positions)
             write_json(args.out, draft)
             print(f"wrote {len(draft['selected_subvolumes'])} review-required suggestions to {args.out}")
         elif args.command == "finalize":

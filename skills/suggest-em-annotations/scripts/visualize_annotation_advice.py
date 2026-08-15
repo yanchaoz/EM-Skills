@@ -92,14 +92,15 @@ def render(manifest_path: Path, selection_path: Path, embeddings_path: Path, out
         table_rows.append([
             f"#{row['rank']}",
             row["candidate_id"],
+            f"{row.get('derived_shape_zyx', [box[1][i]-box[0][i] for i in range(3)])}",
             f"{box[0]}–{box[1]}",
             f"+{row['newly_covered_patch_count']}",
             row.get("review_status", "pending"),
         ])
     table = ax_table.table(
         cellText=table_rows,
-        colLabels=["Rank", "ID", "bbox zyx", "Gain", "Review"],
-        colWidths=[0.08, 0.22, 0.38, 0.12, 0.18],
+        colLabels=["Rank", "ID", "Size zyx", "bbox zyx", "Gain", "Review"],
+        colWidths=[0.07, 0.18, 0.15, 0.32, 0.10, 0.16],
         loc="center",
         cellLoc="left",
         colLoc="left",
@@ -113,7 +114,10 @@ def render(manifest_path: Path, selection_path: Path, embeddings_path: Path, out
             cell.set_facecolor("#e9eef2")
             cell.set_text_props(weight="bold")
 
-    fig.suptitle(f"EM Annotation Advisor — {selection.get('project_id', 'project')}\nDRAFT • human review required", fontsize=15, fontweight="bold")
+    spent = selection.get("annotation_cost_voxels")
+    budget = selection.get("annotation_budget_voxels")
+    budget_text = f" • budget {spent:,}/{budget:,} voxels" if isinstance(spent, int) and isinstance(budget, int) else ""
+    fig.suptitle(f"EM Annotation Advisor — {selection.get('project_id', 'project')}\nDRAFT • human review required{budget_text}", fontsize=15, fontweight="bold")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=220, bbox_inches="tight", facecolor="white")
     plt.close(fig)

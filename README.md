@@ -20,7 +20,7 @@ The goal is simple:
 | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial semantic and 3D instance segmentation |
-| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | SL-SSNS/CGS-based representative subvolume selection for human annotation |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | EMFoundation embedding-guided variable-size subvolume selection for human annotation |
 
 `segneuron-inference` is designed for datasets such as:
 
@@ -95,17 +95,18 @@ Wait for my profile selection before full-volume inference and label restoration
 The MitoNet workflow keeps semantic foreground, per-plane panoptic instances, 3D stack matching, source-grid restoration, and scientific approval as separate gates.
 
 
-### SL-SSNS annotation advisor example
+### EM annotation advisor example
 
 ```text
-Use the suggest-em-annotations skill to plan four neuron-segmentation annotation regions
-from this zyx Volume EM dataset. Audit voxel size, axes, source identity, and holdout bounds.
-Use embeddings from the pinned SL-SSNS encoder, run coverage-guided subvolume selection,
-and render the spatial map, embedding coverage, coverage curve, and review queue.
+Use the suggest-em-annotations skill to plan variable-size neuron-segmentation annotation regions
+from this zyx Volume EM dataset under a fixed annotation-volume budget.
+Audit voxel size, axes, source identity, and holdout bounds. Use the pinned EMFoundation BASE
+encoder to extract real 512-D embeddings, run multi-scale budgeted coverage selection,
+and render the spatial map, embedding coverage, raw EM gallery, coverage curve, and review queue.
 Wait for explicit accept/reject decisions before exporting the final annotation manifest.
 ```
 
-The workflow implements the SL-SSNS constrained coverage-rate objective as an auditable annotation advisor. It never turns selected regions into labels, excludes configured validation/test regions, records source/model/configuration hashes, and requires a named human reviewer before finalization.
+The workflow extends the SL-SSNS constrained coverage-rate idea into an auditable multi-scale, cost-aware annotation advisor. It never turns selected regions into labels, excludes configured validation/test regions, records source/model/configuration hashes, and requires a named human reviewer before finalization.
 
 ---
 
@@ -350,6 +351,26 @@ See the [MitoNet pilot record](examples/syn178-mitonet-pilot/README.md) for para
 
 ---
 
+## AC3AC4 Real Annotation-Advisor Pilot
+
+The annotation advisor was executed remotely on the real `Figure2-Exps/data/AC3AC4/0.tif` volume with `Pretraining_mito/models/BASE/learner.ckpt`.
+
+- input: `256 × 1024 × 1024`, `uint8`, zyx;
+- encoder: 74/74 compatible keys loaded, 512-D pooled PNIv2 features;
+- embeddings: `3375 × 512`;
+- candidates: 8,410 boxes across four sizes;
+- budget: 24,000,000 source voxels, maximum six boxes;
+- selected: six boxes using 22,806,528 voxels;
+- embedding coverage: 49.63% at `k=30`.
+
+![AC3AC4 annotation selection overview](examples/ac3ac4-annotation-advisor/selection-overview.png)
+
+![AC3AC4 raw EM review gallery](examples/ac3ac4-annotation-advisor/raw-subvolume-gallery.png)
+
+See the [complete pilot record](examples/ac3ac4-annotation-advisor/README.md) for exact hashes, coordinates, configuration, and limitations. The queue remains a human-review draft; coverage alone does not prove downstream segmentation improvement.
+
+---
+
 ## Design Principles
 
 EM-Skills follows several principles for scientific EM analysis.
@@ -406,7 +427,7 @@ For the full technical specification of the current skill, see:
 * [Deployment Guide](skills/segneuron-inference/references/deployment.md)
 * [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
 * [MitoNet Configuration Reference](skills/mitonet-inference/references/config-schema.md)
-* [SL-SSNS Annotation Advisor Skill](skills/suggest-em-annotations/SKILL.md) and [method evidence](skills/suggest-em-annotations/references/method-and-evidence.md)
+* [EM Annotation Advisor Skill](skills/suggest-em-annotations/SKILL.md), [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md), and [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
 
 ---
 
