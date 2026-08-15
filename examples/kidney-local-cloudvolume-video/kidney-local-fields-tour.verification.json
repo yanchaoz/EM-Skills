@@ -6,7 +6,7 @@
   "fps": 24.0,
   "frame_count": 992,
   "duration_seconds": 41.333333333333336,
-  "sha256": "d12f4e13b6ef20ea994f16065a894b73093a2c6b1490011570c0097fa366c193",
+  "sha256": "fe7ca0abdcd2f160431f63e87e66e2ee7e982def5862aaff66a5f064d539f999",
   "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
   "layers": [
     "Nuclei",

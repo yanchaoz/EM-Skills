@@ -57,7 +57,7 @@ keyframe samples, and a machine-readable verification report.
 - video: `1920 x 1080`, 24 fps, 992 frames, 41.33 seconds;
 - scope: one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs;
 - layers: nuclei, mitochondria, basement membrane, lysosomes;
-- SHA-256: `d12f4e13b6ef20ea994f16065a894b73093a2c6b1490011570c0097fa366c193`;
+- SHA-256: `fe7ca0abdcd2f160431f63e87e66e2ee7e982def5862aaff66a5f064d539f999`;
 - all 16 selected raw/mask/overlay/density keyframes decoded successfully.
 
 See [`kidney-local-fields-tour.verification.json`](kidney-local-fields-tour.verification.json)

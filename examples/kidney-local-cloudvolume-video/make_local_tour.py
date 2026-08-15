@@ -291,7 +291,7 @@ def write_storyboard(states, output):
 def render(states, output):
     writer = imageio_ffmpeg.write_frames(
         str(output), (WIDTH, HEIGHT), fps=FPS, codec="libx264", quality=None,
-        bitrate="10M", pix_fmt_in="rgb24", pix_fmt_out="yuv420p",
+        bitrate="3M", pix_fmt_in="rgb24", pix_fmt_out="yuv420p",
         macro_block_size=8, ffmpeg_log_level="warning",
         output_params=["-movflags", "+faststart"],
     )
