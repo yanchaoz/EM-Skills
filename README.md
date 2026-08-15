@@ -13,7 +13,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | Skill | Use it for | Main outputs |
 | --- | --- | --- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
-| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
+| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
 | [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Neuroglancer preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
