@@ -190,7 +190,13 @@ The queue remains a human-review draft; embedding coverage alone does not prove 
 
 The presentation uses a bounded **1 x 1 mm** context ROI, shows four structure-density maps one by one at full context scale, then visibly moves to four seeded-random **200 x 112.5 um** local overlay views.
 
-https://github.com/user-attachments/assets/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+
+
+https://github.com/user-attachments/assets/6ba3ba33-b00e-4d6e-8a8d-4f36eff15c8d
+
+
+
 
 | Verified video keyframes | Seeded-random local occupancy |
 | --- | --- |
