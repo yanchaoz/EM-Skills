@@ -4,30 +4,186 @@
   "width": 1920,
   "height": 1080,
   "fps": 24.0,
-  "frame_count": 408,
-  "duration_seconds": 17.0,
-  "decoded_samples": [
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true
+  "frame_count": 992,
+  "duration_seconds": 41.333333333333336,
+  "sha256": "d12f4e13b6ef20ea994f16065a894b73093a2c6b1490011570c0097fa366c193",
+  "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
+  "layers": [
+    "Nuclei",
+    "Mitochondria",
+    "Basement membrane",
+    "Lysosomes"
   ],
-  "sha256": "58c852086fa0acc0d95f7643797557df46a82abfca50305cb8dba28da10d0bda",
+  "density_method": "positive structure pixels / valid tissue pixels; valid raw intensity 0 < I < 250; Gaussian sigma 0.8 bins for display",
+  "selected_keyframes": [
+    "context.raw",
+    "context.masks",
+    "context.overlay",
+    "context.density",
+    "detail_cortex.masks",
+    "detail_cortex.overlay",
+    "detail_cortex.density",
+    "detail_junction.masks",
+    "detail_junction.overlay",
+    "detail_junction.density",
+    "detail_medulla.masks",
+    "detail_medulla.overlay",
+    "detail_medulla.density",
+    "detail_papilla.masks",
+    "detail_papilla.overlay",
+    "detail_papilla.density"
+  ],
   "checks": {
-    "dimensions": true,
-    "fps": true,
+    "dimensions_1920x1080": true,
+    "fps_24": true,
     "frame_count": true,
-    "all_samples_decoded": true
+    "all_selected_keyframes_decoded": true,
+    "one_1x1_mm_context": true,
+    "four_detail_rois": true,
+    "all_story_stages_present": true,
+    "four_masks_present": true
   },
   "ok": true,
-  "scope": "four local kidney fields only; no whole-kidney overview",
-  "source_display_resolution_nm_per_px": 20.0
+  "timeline": [
+    {
+      "key": "context.raw",
+      "title": "Cortex-junction context - raw",
+      "first_frame": 0,
+      "last_frame": 39,
+      "mid_frame": 19
+    },
+    {
+      "key": "context.masks",
+      "title": "Cortex-junction context - masks",
+      "first_frame": 48,
+      "last_frame": 88,
+      "mid_frame": 68
+    },
+    {
+      "key": "context.overlay",
+      "title": "Cortex-junction context - overlay",
+      "first_frame": 97,
+      "last_frame": 139,
+      "mid_frame": 118
+    },
+    {
+      "key": "context.density",
+      "title": "Cortex-junction context - density",
+      "first_frame": 148,
+      "last_frame": 191,
+      "mid_frame": 169
+    },
+    {
+      "key": "detail_cortex.raw",
+      "title": "Cortex - raw",
+      "first_frame": 200,
+      "last_frame": 239,
+      "mid_frame": 219
+    },
+    {
+      "key": "detail_cortex.masks",
+      "title": "Cortex - masks",
+      "first_frame": 248,
+      "last_frame": 288,
+      "mid_frame": 268
+    },
+    {
+      "key": "detail_cortex.overlay",
+      "title": "Cortex - overlay",
+      "first_frame": 297,
+      "last_frame": 339,
+      "mid_frame": 318
+    },
+    {
+      "key": "detail_cortex.density",
+      "title": "Cortex - density",
+      "first_frame": 348,
+      "last_frame": 391,
+      "mid_frame": 369
+    },
+    {
+      "key": "detail_junction.raw",
+      "title": "Corticomedullary junction - raw",
+      "first_frame": 400,
+      "last_frame": 439,
+      "mid_frame": 419
+    },
+    {
+      "key": "detail_junction.masks",
+      "title": "Corticomedullary junction - masks",
+      "first_frame": 448,
+      "last_frame": 488,
+      "mid_frame": 468
+    },
+    {
+      "key": "detail_junction.overlay",
+      "title": "Corticomedullary junction - overlay",
+      "first_frame": 497,
+      "last_frame": 539,
+      "mid_frame": 518
+    },
+    {
+      "key": "detail_junction.density",
+      "title": "Corticomedullary junction - density",
+      "first_frame": 548,
+      "last_frame": 591,
+      "mid_frame": 569
+    },
+    {
+      "key": "detail_medulla.raw",
+      "title": "Medulla - raw",
+      "first_frame": 600,
+      "last_frame": 639,
+      "mid_frame": 619
+    },
+    {
+      "key": "detail_medulla.masks",
+      "title": "Medulla - masks",
+      "first_frame": 648,
+      "last_frame": 688,
+      "mid_frame": 668
+    },
+    {
+      "key": "detail_medulla.overlay",
+      "title": "Medulla - overlay",
+      "first_frame": 697,
+      "last_frame": 739,
+      "mid_frame": 718
+    },
+    {
+      "key": "detail_medulla.density",
+      "title": "Medulla - density",
+      "first_frame": 748,
+      "last_frame": 791,
+      "mid_frame": 769
+    },
+    {
+      "key": "detail_papilla.raw",
+      "title": "Renal papilla - raw",
+      "first_frame": 800,
+      "last_frame": 839,
+      "mid_frame": 819
+    },
+    {
+      "key": "detail_papilla.masks",
+      "title": "Renal papilla - masks",
+      "first_frame": 848,
+      "last_frame": 888,
+      "mid_frame": 868
+    },
+    {
+      "key": "detail_papilla.overlay",
+      "title": "Renal papilla - overlay",
+      "first_frame": 897,
+      "last_frame": 939,
+      "mid_frame": 918
+    },
+    {
+      "key": "detail_papilla.density",
+      "title": "Renal papilla - density",
+      "first_frame": 948,
+      "last_frame": 991,
+      "mid_frame": 969
+    }
+  ]
 }

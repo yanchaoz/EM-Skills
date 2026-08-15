@@ -117,9 +117,9 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 
 ```text
 请对这些肾脏 precomputed 数据使用 $cloudvolume-video。先审计物理对齐，
-再展示皮质、皮髓交界、髓质和肾乳头的匹配局部视野，不要使用全肾概览。
-设置 video.include_overview=false；渲染 raw/segmentation overlay，并单独
-比较区域密度。如果存在有效的三维 mesh
+先用有界的 1 x 1 mm 背景 ROI 建立空间尺度，再展示皮质、皮髓交界、
+髓质和肾乳头的 200 x 112.5 um 匹配细节视野，不要使用全肾概览。
+依次渲染 raw EM、独立 masks、组合 overlay 和局部密度图。如果存在有效的三维 mesh
 元数据，导出指定 segment IDs，并生成经过验证的 turntable 视频。
 ```
 
@@ -179,13 +179,13 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 
 ### CloudVolume 视频：肾脏局部视野
 
-展示严格使用四个 20 nm/px 的匹配局部视野：皮质、皮髓交界、髓质和肾乳头，不包含全肾概览。密度图比较局部区域，不能替代 ground-truth 准确率评估。
+展示先以有界的 **1 x 1 mm** 背景 ROI 建立空间尺度，再进入皮质、皮髓交界、髓质和肾乳头四个 **200 x 112.5 um** 细节视野。视频依次展示 raw EM、四类独立 mask、透明 overlay 和局部密度图，且不出现全肾画面。密度表示预测结构在有效组织像素中的占比，不能替代 ground-truth 准确率评估。
 
-| 四个局部 EM 视野 | 局部区域密度 |
+| 视频关键帧验证 | 局部区域密度汇总 |
 | --- | --- |
-| ![肾脏局部 EM 视野](examples/kidney-local-cloudvolume-video/four-local-fields-20nm.jpg) | ![肾脏局部密度对比](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
+| ![肾脏视频 mask、overlay 与密度关键帧](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour-contact-sheet.jpg) | ![肾脏局部密度对比](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
 
-[▶ 查看或下载经过验证的 17 秒、1080p 肾脏局部视野视频](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
+[▶ 查看或下载经过验证的 41 秒、1080p 肾脏 mask/overlay/密度视频](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
 
 该肾脏来源是单切片 WSI，因此不会被包装成真实三维 mesh 结果。Skill 测试会独立验证已有 mesh 读取、有界标签转 mesh、完整 PLY 导出、无界面 turntable 渲染与视频校验。[完整局部视野记录](examples/kidney-local-cloudvolume-video/README.md)
 
