@@ -12,11 +12,11 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 
 | Skill | Use it for | Main outputs |
 | --- | --- | --- |
-| [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
-| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
-| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
+| [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | [SegNeuron](https://papers.miccai.org/miccai-2024/paper/0518_paper.pdf) affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
+| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | [MitoNet](https://www.cell.com/cell-systems/fulltext/S2405-4712(22)00492-6) mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | [Embedding-guided, variable-size subvolume selection](https://www.sciencedirect.com/science/article/pii/S2589004225027683) | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
-| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Neuroglancer preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | [Neuroglancer](https://github.com/google/neuroglancer) preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
