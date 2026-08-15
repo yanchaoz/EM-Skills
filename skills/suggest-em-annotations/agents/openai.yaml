@@ -1,4 +1,4 @@
 interface:
   display_name: "EM Annotation Advisor"
-  short_description: "Select variable-size Volume EM annotation subvolumes"
-  default_prompt: "Use $suggest-em-annotations to extract real EMFoundation embeddings and generate a budgeted, variable-size, human-reviewed annotation queue."
+  short_description: "Plan and review Volume EM annotation regions"
+  default_prompt: "Use $suggest-em-annotations for the requested embedding, selection, visualization, evaluation, or review stage of Volume EM annotation planning."

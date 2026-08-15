@@ -1,84 +1,76 @@
 ---
 name: mitonet-inference
-description: Audit, plan, deploy, visualize, and verify MitoNet/Empanada mitochondrial semantic and 3D instance segmentation for electron microscopy. Use for FIB-SEM, SBF-SEM, ATUM-SEM, ssTEM, TIFF, NumPy, Zarr, or CloudVolume data when the task includes physical-resolution adjustment, MitoNet or MitoNet-mini inference, stack or orthoplane consensus, threshold/profile comparison, source-grid label restoration, remote or air-gapped GPU execution, proofreading preparation, or mitochondrial segmentation QC. Do not use for fluorescence MitoSegNet, mitochondrial classification, neuron segmentation, or model training unless explicitly extended.
+description: Work with MitoNet/Empanada for mitochondrial semantic and 3D instance segmentation in electron microscopy. Use when a task involves auditing EM metadata, planning or preparing the model grid, running MitoNet or MitoNet-mini, comparing inference profiles, inspecting semantic foreground or instance outputs, stack matching or orthoplane consensus, restoring labels to the source grid, creating mitochondrial overlays and continuity figures, or verifying a MitoNet result. Supports a single requested stage as well as end-to-end pilot and inference runs. Do not use for fluorescence MitoSegNet, neuron segmentation, classification, or model training.
 ---
 
 # MitoNet Inference
 
-Build a fail-closed path from volume EM to mitochondrial semantic masks and globally coherent 3D instances. Use the MitoNet model distributed through Empanada; do not confuse it with similarly named fluorescence or PyTorch-Connectomics projects.
+Use this Skill as a task-routed capability pack. Execute only the stages required for the requested outcome and reuse existing raw, semantic, instance, configuration, or QC artifacts when available.
 
-## Model contract
+## Route the request
 
-Keep the stages and artifacts distinct:
+| User intent | Use this capability | Load when needed |
+| --- | --- | --- |
+| Inspect data or metadata | `audit` | [config schema](references/config-schema.md) |
+| Select scale, plane, or estimate a run | `plan` | [model contract](references/model-contract.md) |
+| Resample raw data for the model | `prepare` | [model contract](references/model-contract.md) |
+| Test or run MitoNet | `pilot` or `infer` | [deployment](references/deployment.md), [model contract](references/model-contract.md) |
+| Compare scales, thresholds, or matching settings | `profile-sweep`; select only after review | [quality gates](references/quality-gates.md) |
+| Inspect an existing mask or segmentation | visualization and relevant verification only | [quality gates](references/quality-gates.md) |
+| Restore or package labels | `restore`, `verify`, or `finalize` as requested | [quality gates](references/quality-gates.md) |
+
+For an end-to-end segmentation request, use `audit → plan → prepare → pilot/profile-sweep → select-profile → infer → restore → verify → finalize`. Pause at profile selection unless the user already supplied a profile. Do not require the full chain for visualization, auditing, or diagnosis.
+
+## Preserve the model contract
+
+Keep these artifacts distinct:
 
 ```text
-source raw -> model-grid raw -> 2D semantic/center/offset predictions
-           -> per-plane 2D instances -> stack matching or orthoplane consensus
-           -> source-grid labels -> QC/proofreading -> verified delivery
+source raw -> model-grid raw -> semantic/center/offset predictions
+           -> per-plane instances -> 3D stack matching or orthoplane consensus
+           -> source-grid labels -> QC/proofreading
 ```
 
-MitoNet is a 2D panoptic model. A 3D result is produced by Empanada's slice matching and, optionally, consensus across `xy`, `xz`, and `yz`. Never describe a semantic foreground mask as an instance segmentation.
+- Use the MitoNet model distributed through Empanada; do not confuse it with similarly named fluorescence or connectomics projects.
+- MitoNet is a 2D panoptic model. Describe 3D instances as the result of slice matching and, when used, orthoplane consensus.
+- Never call a semantic foreground mask an instance segmentation.
+- Track axes, voxel size, offset, physical bounds, source identity, model revision, checkpoint checksum, and runtime.
+- Use continuous interpolation for raw intensities and nearest-neighbor interpolation for labels.
+- Preserve source data and write derived artifacts beneath a separate `output.root`.
 
-Read [references/model-contract.md](references/model-contract.md) before selecting MitoNet versus MitoNet-mini, a target pixel size, an inference mode, or postprocessing parameters. Read [references/config-schema.md](references/config-schema.md) before editing a project configuration.
+Read [model contract](references/model-contract.md) before choosing MitoNet versus MitoNet-mini, target pixel size, inference plane, or postprocessing parameters.
 
-## Workflow
+## Use the orchestrator
 
-1. Preserve the source and write all derivatives beneath a separate `output.root`.
-2. Scaffold a project, then record source axes, shape, voxel size, offset, bounds, and immutable identity.
-3. Pin the official Empanada repository commit, model variant, model file, and SHA-256. Keep code, weights, environments, data, and credentials outside the skill.
-4. Run `audit` and stop on missing or contradictory metadata.
-5. Run `plan`; review physical extents and the source-to-model transform. Do not assume one universal MitoNet pixel size.
-6. Run `prepare` to create model-grid raw data using continuous interpolation. Preserve z by default for anisotropic stack inference.
-7. Run a representative pilot. Test difficult mitochondria, crowded regions, membranes with similar texture, low contrast, and artifacts.
-8. Configure two or more named inference profiles when parameters are uncertain. Run `profile-sweep`, render identical slices, and ask the user to select a profile. Do not select from object count alone.
-9. Run `select-profile --profile NAME`, then `infer`. Use stack inference for strongly anisotropic data unless orthogonal views are demonstrably useful; use orthoplane consensus only after plane-wise review.
-10. Restore labels with nearest-neighbor interpolation, generate QC figures, and record semantic and instance checks separately.
-11. Run `verify` and `finalize` only after human review and all required gates pass.
-
-## Commands
+Run commands from the Skill directory:
 
 ```powershell
 python scripts/mitonet_pipeline.py scaffold project.yaml
 python scripts/mitonet_pipeline.py audit project.yaml
 python scripts/mitonet_pipeline.py plan project.yaml
 python scripts/mitonet_pipeline.py prepare project.yaml
-python scripts/mitonet_pipeline.py prepare project.yaml --execute
 python scripts/mitonet_pipeline.py pilot project.yaml
 python scripts/mitonet_pipeline.py profile-sweep project.yaml
-python scripts/mitonet_pipeline.py profile-sweep project.yaml --execute
 python scripts/mitonet_pipeline.py select-profile project.yaml --profile stack-balanced
-python scripts/mitonet_pipeline.py infer project.yaml --execute
-python scripts/mitonet_pipeline.py restore project.yaml --execute
+python scripts/mitonet_pipeline.py infer project.yaml
+python scripts/mitonet_pipeline.py restore project.yaml
 python scripts/mitonet_pipeline.py verify project.yaml
 python scripts/mitonet_pipeline.py finalize project.yaml
 ```
 
-`prepare`, `pilot`, `profile-sweep`, `infer`, and `restore` are dry-run unless `--execute` is supplied. The runner executes argument lists without a shell and records rendered commands, logs, expected outputs, timestamps, and configuration hashes.
+`prepare`, `pilot`, `profile-sweep`, `infer`, and `restore` are dry runs unless `--execute` is supplied. Review generated arguments, working directory, source/output separation, expected artifacts, and pinned model identity before execution.
 
-Use the official-code adapter after reviewing its generated job:
+Start new projects from `assets/project.example.yaml`. Read [config schema](references/config-schema.md) before changing fields or command templates. Use `scripts/mitonet_adapter.py` to invoke the pinned official `scripts/pdl_inference3d.py`; do not reimplement MitoNet inside the Skill.
 
-```powershell
-python scripts/mitonet_adapter.py `
-  --repo external/empanada `
-  --model-config external/MitoNet_v1.yaml `
-  --checkpoint external/MitoNet_v1.pth `
-  --input derived/raw-model-grid.tif `
-  --output derived/instances-model-grid.tif `
-  --mode stack --median-kernel 3 --seg-thr 0.3 `
-  --center-thr 0.1 --center-min-distance 3 `
-  --merge-iou 0.25 --merge-ioa 0.25 `
-  --min-size 500 --min-span 4
-```
+## Compare profiles
 
-The adapter invokes the pinned official `scripts/pdl_inference3d.py`; it does not reimplement MitoNet.
+Use named profiles to freeze scale, model variant, inference mode, thresholds, matching, consensus, and object filters. Write each candidate to a separate path. Compare the same XY slices plus XZ/YZ continuity when z extent permits.
 
-## Profile selection gate
+Inspect false positives on ER/Golgi/vesicles, missed low-contrast mitochondria, merges between apposed objects, elongated-object oversplits, pancakes, boundary truncation, and topology through z. Do not rank candidates from object count or foreground fraction alone.
 
-Each `inference.profiles` entry freezes the model grid, model variant, inference mode, thresholds, matching, consensus, and object filters. Profile candidates must use separate output paths via `{profile}`. Review raw overlays on the same XY slices and, for 3D data, XZ/YZ continuity. Selection writes `_mitonet_skill/profile-selection.json` with the configuration digest. A configuration change invalidates the selection.
+Ask the user to choose unless they delegated selection under explicit criteria or supplied a profile. `select-profile` records the configuration digest; changing the configuration invalidates the selection.
 
-Do not interpret “more instances” or “larger foreground fraction” as better. Inspect false positives on ER/Golgi/vesicles, missed low-contrast mitochondria, merges between apposed mitochondria, oversplits of elongated mitochondria, pancakes, boundary truncation, and topology through z.
-
-## Visualization and QC
+## Visualize existing or new results
 
 ```powershell
 python scripts/mitonet_visualize.py `
@@ -88,31 +80,16 @@ python scripts/mitonet_visualize.py `
   --output-stem derived/qc/mitonet-summary
 ```
 
-The renderer produces a raw/foreground/instance-overlay/orthogonal-continuity plate plus JSON metrics. When ground truth exists, evaluate semantic IoU/Dice and instance precision/recall or F1 at declared IoU thresholds separately. Without ground truth, report only integrity and manual-review evidence; morphology distributions are not accuracy metrics.
+The renderer creates raw, semantic foreground, instance overlay, and orthogonal-continuity panels plus JSON metrics. Do not rerun inference when the user only requests a figure from existing artifacts.
 
-Read [references/quality-gates.md](references/quality-gates.md) before approving a pilot or delivery. Read [references/deployment.md](references/deployment.md) before remote, scheduled, or air-gapped execution.
+## Verify in proportion to the request
 
-## Stop conditions
+- For a pilot, cover difficult mitochondria, crowded regions, similar-texture membranes, low contrast, artifacts, and enough z extent to judge continuity.
+- For orthoplane consensus, inspect each plane before trusting the consensus, especially with strong anisotropy.
+- For restored labels, verify shape, dtype, label set, voxel size, offset, and physical bounds.
+- For final delivery, read [quality gates](references/quality-gates.md) and include the frozen configuration, provenance, executed commands, QC figures, limitations, and relevant intermediate artifacts.
+- With ground truth, report semantic and instance metrics separately at declared thresholds. Without ground truth, report integrity and manual-review evidence, not accuracy.
 
-Stop and report the blocker when:
+## Fail closed for scientific claims
 
-- voxel size, axis order, bounds, source identity, repository commit, or model checksum is unresolved;
-- target pixel size or inference plane is chosen without pilot evidence;
-- source and output paths overlap;
-- orthoplane inference is requested for strongly anisotropic data without plane-wise review;
-- the maximum label count can exceed the configured dtype or label divisor;
-- restoration changes physical bounds or interpolates IDs continuously;
-- a profile has not been explicitly selected;
-- severe false positives, catastrophic merges, topology loss, or unresolved seams remain;
-- the pilot lacks enough z extent to assess 3D continuity.
-
-## Bundled resources
-
-- `scripts/mitonet_pipeline.py`: audit, grid plan, dry-run/execute jobs, profile selection, verification, and delivery manifest.
-- `scripts/mitonet_adapter.py`: pinned official Empanada CLI adapter and provenance recorder.
-- `scripts/mitonet_visualize.py`: calibrated raw/mask/instance/orthogonal QC plate.
-- `assets/project.example.yaml`: starter configuration.
-- `references/model-contract.md`: official MitoNet/Empanada evidence and parameter semantics.
-- `references/config-schema.md`: complete project field contract.
-- `references/deployment.md`: remote and air-gapped execution contract.
-- `references/quality-gates.md`: pilot and delivery acceptance checklist.
+Stop a dependent stage when axes, voxel size, bounds, source identity, model revision, or checkpoint checksum is unresolved; source and output overlap; a chosen scale/plane lacks pilot evidence; label capacity may overflow; restoration changes physical bounds; or severe false positives, merges, topology loss, or seams remain. A display-only task may proceed if its limitations are stated and no missing metadata are fabricated.

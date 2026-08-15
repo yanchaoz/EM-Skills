@@ -4,13 +4,13 @@
 
 English | [简体中文](README.zh-CN.md)
 
-EM-Skills is a collection of reusable Agent Skills for professional electron microscopy analysis.
+EM-Skills is a collection of reusable Agent Skills for professional electron microscopy analysis. Each Skill combines domain guidance, task routing, deterministic scripts, reference material, and scientific quality gates.
 
-Instead of treating EM analysis as a single model inference step, each skill organizes the complete workflow required for reliable scientific use, including data inspection, physical-resolution planning, pilot validation, model inference, parameter comparison, human review, output restoration, visualization, and quality control.
+A Skill is not a fixed end-to-end workflow. It can audit one dataset, render an existing result, compare postprocessing candidates, run a pilot, or coordinate a complete analysis. The Agent should select the smallest set of capabilities that satisfies the request and reuse artifacts that already exist.
 
 The goal is simple:
 
-> Turn specialized EM analysis pipelines into reproducible workflows that AI Agents can execute, inspect, and verify.
+> Turn specialized EM methods into reusable capabilities that AI Agents can select, execute, inspect, and verify.
 
 ---
 
@@ -21,6 +21,16 @@ The goal is simple:
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial semantic and 3D instance segmentation |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | EMFoundation embedding-guided variable-size subvolume selection for human annotation |
+
+### Skill design
+
+Every Skill follows the same operating model:
+
+* The frontmatter description determines when the Skill should activate.
+* `SKILL.md` routes the request to the smallest relevant capability.
+* `scripts/` provides reproducible operations instead of asking the Agent to re-create commands or algorithms.
+* `references/` is loaded only when a task needs the corresponding model, configuration, deployment, or QC detail.
+* Scientific approval gates apply to claims and final delivery; they do not force a full pipeline for a narrow audit or visualization request.
 
 `segneuron-inference` is designed for datasets such as:
 
@@ -50,7 +60,16 @@ After installation, start a new Codex task so the skill can be discovered.
 
 ## How to Use
 
-The skill can be invoked directly with natural language.
+Invoke a Skill with natural language and ask for either one capability or a complete outcome. For example, all of the following are valid:
+
+```text
+Use $segneuron-inference to audit the axes and physical grid of this volume. Do not run inference.
+Use $segneuron-inference to compare these existing beta candidates and make an overlay figure.
+Use $mitonet-inference to verify this existing mitochondrial instance volume against the raw EM.
+Use $suggest-em-annotations to plot the existing selection in UMAP without re-extracting embeddings.
+```
+
+For an end-to-end request, the Skill expands only the stages needed to reach the final outcome.
 
 For example:
 
@@ -110,9 +129,9 @@ The workflow extends the SL-SSNS constrained coverage-rate idea into an auditabl
 
 ---
 
-## Standard Workflow
+## Reference End-to-End Workflow
 
-The recommended workflow is:
+For a new SegNeuron segmentation with no reusable artifacts, the reference workflow is:
 
 ```text
 Source Volume EM
@@ -433,9 +452,9 @@ For the full technical specification of the current skill, see:
 
 ## Repository Philosophy
 
-EM-Skills is not intended to be a repository of isolated inference scripts.
+EM-Skills is neither a repository of isolated inference scripts nor a set of rigid pipelines.
 
-It aims to package expert EM workflows into reusable Agent Skills that combine:
+It packages expert EM capabilities into reusable Agent Skills that combine:
 
 ```text
 Domain knowledge
@@ -451,7 +470,7 @@ Quality control
 Reproducibility
 ```
 
-so that AI Agents can assist with EM reconstruction in a structured and scientifically responsible way.
+The Agent routes each request to the relevant subset. End-to-end coordination is available when the outcome requires it, while narrow tasks remain narrow.
 
 ---
 

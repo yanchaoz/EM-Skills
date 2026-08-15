@@ -4,13 +4,13 @@
 
 [English](README.md) | 简体中文
 
-EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills 集合。
+EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills 集合。每个 Skill 组合了领域知识、任务路由、确定性脚本、按需参考资料和科研质量门禁。
 
-它并不把 EM 分析简单理解为“运行一次模型”，而是将真实科研任务中需要的数据检查、物理分辨率规划、小规模 Pilot、模型推理、参数比较、人工确认、标签恢复、结果可视化和质量控制组织成完整工作流。
+Skill 不是一条必须从头跑到尾的固定工作流。它既可以只审计一份数据、绘制已有结果、比较后处理候选或运行 Pilot，也可以协调完整分析。Agent 应选择满足请求所需的最小能力集合，并优先复用已有产物。
 
 目标很简单：
 
-> 将专业 EM 分析方法封装成 AI Agent 可以执行、检查和验证的标准化、可复现科研流程。
+> 将专业 EM 方法封装成 AI Agent 可以选择、执行、检查和验证的可复用能力。
 
 ---
 
@@ -21,6 +21,16 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | 基于 SegNeuron 的 Volume EM 三维神经元实例分割 |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | 基于 MitoNet/Empanada 的线粒体语义与三维实例分割 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 EMFoundation embedding 的可变尺寸子体块选择与人工标注建议 |
+
+### Skill 设计
+
+每个 Skill 都遵循同一套运行方式：
+
+* frontmatter 中的 `description` 决定何时触发 Skill；
+* `SKILL.md` 把请求路由到最小必要能力；
+* `scripts/` 提供可复现操作，避免 Agent 临时重写命令或算法；
+* `references/` 只在任务需要相应模型、配置、部署或 QC 细节时加载；
+* 科研审批门禁用于限制结论和最终交付，不会迫使一次简单审计或绘图执行完整流水线。
 
 `segneuron-inference` 适用于：
 
@@ -50,9 +60,16 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 
 ## 如何使用
 
-不需要手动组织复杂的模型推理和后处理命令。
+直接用自然语言指定一个能力或完整目标即可。例如，下面这些都是有效请求：
 
-直接告诉 Codex 使用该 Skill，并提供 Volume EM 数据即可。
+```text
+使用 $segneuron-inference 审计这份数据的轴顺序和物理网格，不要运行推理。
+使用 $segneuron-inference 比较这些已有 beta 候选并绘制 overlay。
+使用 $mitonet-inference 对照原始 EM 检查这份已有的线粒体 instance volume。
+使用 $suggest-em-annotations 对已有选择绘制 UMAP，不要重新提取 embedding。
+```
+
+对于端到端目标，Skill 才会展开达到结果所需的完整阶段。
 
 例如：
 
@@ -113,9 +130,9 @@ MitoNet 工作流会分别检查 semantic foreground、逐切片 panoptic instan
 
 ---
 
-## 标准工作流
+## 参考端到端流程
 
-推荐流程为：
+当没有可复用产物、并且目标是完成一份新的 SegNeuron 分割时，参考流程为：
 
 ```text
 原始 Volume EM
@@ -503,9 +520,9 @@ EM-Skills 主要面向：
 
 ## Repository Philosophy
 
-EM-Skills 的目标不是收集一批相互独立的推理脚本。
+EM-Skills 既不是一批相互独立的推理脚本，也不是一组僵硬的固定流水线。
 
-它希望把专业 EM 工作流封装成 Agent 可以理解和执行的 Skill，将：
+它把专业 EM 能力封装成 Agent 可以理解和执行的 Skill，将：
 
 ```text
 领域知识
@@ -521,7 +538,7 @@ EM-Skills 的目标不是收集一批相互独立的推理脚本。
 可复现性
 ```
 
-组合起来，让 AI Agent 能够更加系统、可靠地辅助电子显微镜数据分析和三维重建。
+组合起来。Agent 会把每个请求路由到相关能力子集；只有目标确实需要时，才协调端到端流程。
 
 ---
 

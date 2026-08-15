@@ -26,6 +26,16 @@
       "id": "upstream-cli-assumption",
       "prompt": "Call the official FRMC_post.py with --input and --output.",
       "expected": ["do not invent upstream flags", "inspect pinned source", "use an audited wrapper or fork"]
+    },
+    {
+      "id": "visualize-existing-artifacts",
+      "prompt": "I already have raw, affinity, membrane, and instance arrays. Make the four-panel SegNeuron figure only; do not rerun inference.",
+      "expected": ["uses existing artifacts", "runs visualization only", "does not require the end-to-end workflow"]
+    },
+    {
+      "id": "user-supplied-beta",
+      "prompt": "Reconstruct these existing affinities with beta 0.25 and record that I selected it.",
+      "expected": ["does not force a beta sweep", "records the supplied choice", "runs only dependent reconstruction and requested QC"]
     }
   ]
 }
