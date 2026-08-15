@@ -7,6 +7,7 @@ Read this file completely when creating or changing a project configuration.
 ```json
 {
   "project_name": "organ-wsi",
+  "precomputed": {},
   "source_root": "/data/project/outputs",
   "output_root": "/data/project/video-output",
   "video": {},
@@ -18,6 +19,7 @@ Read this file completely when creating or changing a project configuration.
 ```
 
 - `project_name`: stable identifier used in manifests.
+- `precomputed`: optional array-to-precomputed preparation and existing-source handoff contract.
 - `source_root`: directory containing precomputed dataset directories. Dataset paths may also be absolute.
 - `output_root`: separate derived-output directory.
 - `video`: common rendering settings.
@@ -27,6 +29,32 @@ Read this file completely when creating or changing a project configuration.
 - `mesh_scenes`: one object per mesh retrieval, extraction, or turntable task.
 
 Mesh-only projects may omit `specimens`; 2D projects may omit `mesh_render` and `mesh_scenes`.
+
+## Precomputed preparation
+
+```json
+{
+  "root": "derived/precomputed",
+  "hash_source": false,
+  "datasets": [{
+    "id": "raw-em",
+    "label": "Raw EM",
+    "source": {"path": "data/raw.tif", "axes": "zyx"},
+    "output": "raw-em",
+    "layer_type": "image",
+    "encoding": "raw",
+    "resolution_nm_xyz": [8, 8, 40],
+    "voxel_offset_xyz": [0, 0, 0],
+    "chunk_size_xyz": [256, 256, 1]
+  }]
+}
+```
+
+`source` may be omitted when `output` already contains a valid precomputed
+dataset. `source.axes` describes the array; resolution, offset, and chunk size
+are always XYZ. Dataset outputs must remain inside `precomputed.root`. For
+format support, segment properties, base-mip policy, exact readback, handoff,
+and server safety, read [the precomputed contract](precomputed-contract.md).
 
 ## Video settings
 
@@ -237,6 +265,9 @@ Bounded marching cubes from a 3D label volume:
 ## Example commands
 
 ```bash
+python neuroglancer_precomputed.py inspect project.json
+python neuroglancer_precomputed.py prepare project.json
+python neuroglancer_precomputed.py handoff project.json
 python cloudvolume_video.py audit project.json --specimen lung
 python cloudvolume_video.py storyboard project.json --specimen lung
 python cloudvolume_video.py render project.json --specimen lung --reuse-assets

@@ -7,7 +7,17 @@ from pathlib import Path
 
 TEMPLATE = {
     "project_name": "cloudvolume-video-project",
-    "source_root": "/path/to/precomputed-datasets",
+    "precomputed": {
+        "root": "/path/to/derived-precomputed-datasets", "hash_source": False,
+        "datasets": [{
+            "id": "raw-em", "label": "Raw EM",
+            "source": {"path": "/path/to/raw-em.npy", "axes": "zyx"},
+            "output": "EM-WSI-Example", "layer_type": "image", "encoding": "raw",
+            "resolution_nm_xyz": [8, 8, 40], "voxel_offset_xyz": [0, 0, 0],
+            "chunk_size_xyz": [256, 256, 1]
+        }]
+    },
+    "source_root": "/path/to/derived-precomputed-datasets",
     "output_root": "/path/to/derived-video-output",
     "video": {
         "width": 1920, "height": 1080, "fps": 30, "include_overview": True,

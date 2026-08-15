@@ -1,6 +1,6 @@
 ---
 name: cloudvolume-video
-description: Create reproducible scientific videos and review figures from CloudVolume or Neuroglancer precomputed EM datasets. Use for metadata and physical-alignment audits; bounded local-field raw/segmentation overlays; structure-density maps; representative-field camera tours; existing precomputed mesh retrieval; bounded 3D label-to-mesh extraction; headless mesh turntables; Neuroglancer handoff; or delivery verification. Supports one requested stage or an end-to-end presentation package. Do not use to infer biological labels or to turn a single 2D section into a claimed 3D mesh.
+description: Prepare and verify Neuroglancer precomputed EM data, then create reproducible scientific videos and review figures from CloudVolume datasets. Use for NPY/TIFF/Zarr-to-precomputed conversion; localhost Neuroglancer serving and viewer-state handoff; metadata and physical-alignment audits; bounded local-field raw/segmentation overlays; structure-density maps; smooth camera tours; existing precomputed mesh retrieval; bounded 3D label-to-mesh extraction; headless mesh turntables; or delivery verification. Supports one requested stage or an end-to-end package. Do not use to infer biological labels or turn a single 2D section into claimed 3D geometry.
 ---
 
 # CloudVolume Video
@@ -11,6 +11,8 @@ Treat this Skill as a set of presentation and verification capabilities. Route t
 
 | User intent | Capability | Script |
 | --- | --- | --- |
+| Convert NPY/TIFF/Zarr arrays or verify an existing precomputed source | `precomputed inspect`, `prepare`, or `verify` | `neuroglancer_precomputed.py` |
+| Generate a viewer state/URL or safely serve local precomputed data | `precomputed handoff` or `serve` | `neuroglancer_precomputed.py` |
 | Inspect datasets, scales, bounds, alignment, or mesh availability | `audit` or `mesh audit` | `cloudvolume_video.py`, `cloudvolume_mesh.py` |
 | Plan a local-field story before rendering | `storyboard` | `cloudvolume_video.py` |
 | Render raw/segmentation overlays, density maps, and a smooth local camera tour | `render` | `cloudvolume_video.py` |
@@ -19,11 +21,17 @@ Treat this Skill as a set of presentation and verification capabilities. Route t
 | Check video decoding, frame metadata, contact sheets, and hashes | `verify` | the corresponding script |
 | Package an approved 2D delivery | `finalize` | `cloudvolume_video.py` |
 
-For an end-to-end 2D request, use `audit → storyboard → render → verify → finalize`. For mesh, use `mesh audit → mesh storyboard → mesh render → mesh verify`. Do not impose either full sequence on a figure-only, audit-only, export-only, or verification-only request.
+If inputs are arrays rather than precomputed, use `precomputed inspect → prepare`
+before the presentation stages. Existing precomputed users skip preparation.
+For an end-to-end 2D request, use `audit → storyboard → render → verify →
+finalize`. For mesh, use `mesh audit → mesh storyboard → mesh render → mesh
+verify`. Do not impose either full sequence on a figure-only, audit-only,
+handoff-only, export-only, or verification-only request.
 
 ## Preserve the data contract
 
 - Record source URI, mip, bounds, resolution, voxel offset, axes, segment IDs, requested ROI, and output identity.
+- Keep source arrays immutable and write converted precomputed datasets only under a declared derived root.
 - Align categorical labels in physical coordinates with nearest-neighbor sampling. Never interpolate instance IDs continuously.
 - Default to bounded local fields. Whole-section density maps are optional analytical context, not the default example view.
 - Use an existing precomputed mesh when present. Otherwise run marching cubes only on an explicit, bounded 3D label ROI.
@@ -39,6 +47,9 @@ Start from [the example configuration](assets/project.example.json) and read the
 
 ```powershell
 python scripts/scaffold_config.py project.json
+python scripts/neuroglancer_precomputed.py inspect project.json
+python scripts/neuroglancer_precomputed.py prepare project.json
+python scripts/neuroglancer_precomputed.py handoff project.json
 python scripts/cloudvolume_video.py audit project.json
 python scripts/cloudvolume_video.py storyboard project.json
 python scripts/cloudvolume_video.py render project.json
@@ -53,6 +64,11 @@ python scripts/cloudvolume_mesh.py verify project.json --scene local-mesh
 ```
 
 The mesh source may be `precomputed`, `labels`, or `file`. `labels` requires a `zyx` volume, physical resolution, non-background segment IDs, and `roi_zyx`. Mesh-only projects may omit `specimens`; 2D projects may omit `mesh_scenes`.
+
+The precomputed converter supports single-channel NPY, TIFF, and Zarr/N5 input
+and writes a base mip in bounded chunks. Read the [precomputed contract](references/precomputed-contract.md)
+before conversion or serving. Generate large interactive mip pyramids only
+through an explicit pinned backend; never average categorical instance IDs.
 
 Mesh export/storyboard/render commands refuse to overwrite existing artifacts. Use `--force` only after reviewing the target.
 

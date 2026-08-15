@@ -1,6 +1,27 @@
 {
   "project_name": "local-em-presentation",
-  "source_root": "/path/to/precomputed-datasets",
+  "precomputed": {
+    "root": "derived/precomputed",
+    "hash_source": false,
+    "datasets": [
+      {
+        "id": "raw-em", "label": "Raw EM",
+        "source": {"path": "data/raw-em.npy", "axes": "zyx"},
+        "output": "EM-WSI-Example", "layer_type": "image", "encoding": "raw",
+        "resolution_nm_xyz": [8, 8, 40], "voxel_offset_xyz": [0, 0, 0],
+        "chunk_size_xyz": [256, 256, 1]
+      },
+      {
+        "id": "mitochondria", "label": "Mitochondria",
+        "source": {"path": "data/mitochondria.npy", "axes": "zyx"},
+        "output": "EM-WSI-Example-Mito", "layer_type": "segmentation",
+        "encoding": "compressed_segmentation",
+        "resolution_nm_xyz": [8, 8, 40], "voxel_offset_xyz": [0, 0, 0],
+        "chunk_size_xyz": [128, 128, 16], "segment_properties": {"1": "Mitochondria"}
+      }
+    ]
+  },
+  "source_root": "derived/precomputed",
   "output_root": "derived/cloudvolume-video",
   "video": {
     "width": 1920, "height": 1080, "fps": 30, "include_overview": false,

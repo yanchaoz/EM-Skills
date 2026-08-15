@@ -16,7 +16,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
-| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Local-field overlays, density views, smooth camera tours, and 3D mesh presentation | storyboards, verified MP4, PLY mesh, Neuroglancer handoff |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Neuroglancer preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
@@ -38,7 +38,7 @@ The **5–10 nm xy range is an applicability check, not a performance guarantee*
 
 Selective annotation is performed by `$suggest-em-annotations`: it selects variable-size regions under a declared budget. Experts then inspect raw/coarse overlays and correct connectivity inside the approved boxes. Training runs only through a real, pinned training adapter.
 
-After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` can present selected local fields or mesh scenes without changing upstream labels or model decisions.
+After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` can prepare and verify derived Neuroglancer precomputed layers, then present selected local fields or mesh scenes without changing upstream labels or model decisions.
 
 ## Quick start
 
@@ -114,10 +114,13 @@ raw/coarse overlays for expert connectivity correction, and export a verified
 training handoff. Compare any adapted checkpoint on a frozen holdout.
 ```
 
-### 5. Local CloudVolume and mesh presentation
+### 5. Neuroglancer preparation and CloudVolume presentation
 
 ```text
-Use $cloudvolume-video on these kidney precomputed datasets. Audit physical
+Use $cloudvolume-video on these kidney datasets. If an input is TIFF, NPY,
+Zarr, or N5, first prepare a derived Neuroglancer precomputed source using its
+declared axes and voxel size, verify exact readback, and generate a viewer
+handoff; skip conversion for existing precomputed inputs. Audit physical
 alignment, then open with a bounded 1 x 1 mm context ROI and show matched
 200 x 112.5 um detail fields from cortex, corticomedullary junction, medulla,
 and renal papilla. Do not use a whole-kidney overview. Render raw EM, separate
@@ -226,7 +229,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 - MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)
 - Annotation advisor: [Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
 - Adaptive reconstruction: [Skill](skills/bootstrap-em-segmentation/SKILL.md) · [cross-Skill composition contract](skills/bootstrap-em-segmentation/references/composition-contract.md)
-- CloudVolume video: [Skill](skills/cloudvolume-video/SKILL.md) · [configuration](skills/cloudvolume-video/references/config-schema.md) · [mesh contract](skills/cloudvolume-video/references/mesh-contract.md) · [quality gates](skills/cloudvolume-video/references/quality-gates.md)
+- CloudVolume video: [Skill](skills/cloudvolume-video/SKILL.md) · [configuration](skills/cloudvolume-video/references/config-schema.md) · [precomputed contract](skills/cloudvolume-video/references/precomputed-contract.md) · [mesh contract](skills/cloudvolume-video/references/mesh-contract.md) · [quality gates](skills/cloudvolume-video/references/quality-gates.md)
 
 ## License
 

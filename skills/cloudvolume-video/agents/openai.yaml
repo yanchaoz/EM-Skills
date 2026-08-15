@@ -1,4 +1,4 @@
 interface:
   display_name: "CloudVolume Video"
-  short_description: "Build verified EM camera tours and 3D mesh videos"
-  default_prompt: "Use $cloudvolume-video to audit my CloudVolume data and create a smooth physical-scale overlay, density, or mesh camera tour with verification."
+  short_description: "Prepare Neuroglancer data and build verified EM videos"
+  default_prompt: "Use $cloudvolume-video to prepare or audit my Neuroglancer precomputed data, then create the requested physical-scale overlay, density, smooth-camera, or mesh delivery with verification."

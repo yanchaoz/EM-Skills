@@ -18,6 +18,16 @@ Read this file completely for remote data, missing mips, large arrays, batch ren
 - Use one log and PID file per specimen. Include stage/progress messages in logs.
 - Poll processes, logs, output counts, memory, and disk. An empty log is not proof of failure if the process is CPU/I/O active, but long reads should emit progress in this pipeline.
 
+## Neuroglancer precomputed preparation
+
+- Run `neuroglancer_precomputed.py inspect` before conversion. Confirm source axes, XYZ resolution, voxel offset, dtype, chunk grid, layer type, and the derived output root.
+- Convert NPY, TIFF, Zarr, or N5 sources in the server environment where they are mounted. Writes are bounded by `chunk_size_xyz`; sources remain read-only.
+- The built-in converter creates only mip 0. If a pyramid is required, choose and pin an explicit backend such as Igneous; never average categorical instance labels.
+- Run exact first/center/last source-to-precomputed readback before rendering. Preserve the conversion and verification manifests so restarts can distinguish complete datasets from partial writes.
+- `handoff` writes a Neuroglancer state and viewer URL. `serve` binds to loopback by default and has no authentication or TLS; use an approved reverse proxy for shared access rather than embedding credentials in a URL.
+
+See [precomputed-contract.md](precomputed-contract.md) for the complete format, safety, and provenance contract.
+
 ## Missing mip strategy
 
 For a requested target grid:

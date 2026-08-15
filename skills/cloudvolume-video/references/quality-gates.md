@@ -2,6 +2,15 @@
 
 Read this file completely before approving a storyboard, starting a formal render, or delivering results.
 
+## Gate 0: optional precomputed preparation
+
+- [ ] Source format, axes, shape, dtype, channel count, resolution, and offset are explicit.
+- [ ] Converted datasets write to a separate bounded derived root, never the source array.
+- [ ] Image versus segmentation layer type and encoding are correct.
+- [ ] First, center, and last source/precomputed samples match exactly after axis mapping.
+- [ ] Base-mip-only output or the explicit pyramid backend is recorded.
+- [ ] Viewer state uses credential-free source URLs; the built-in server binds to loopback unless public exposure was explicitly reviewed.
+
 ## Gate 1: semantic, metadata, and mesh audit
 
 - [ ] Raw and overlay paths exist.
@@ -59,5 +68,6 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] Each 2D specimen has MP4, requested PNG frames, keyframes JSON, `tour.ngvideo`, storyboard, verification JSON, contact sheet, and hash file.
 - [ ] Each mesh scene has PLY, render manifest, MP4 when requested, verification JSON, contact sheet, and hashes.
 - [ ] Root delivery manifest lists all specimens, layers, label IDs, durations, frames, sizes, and hashes.
+- [ ] Converted inputs include precomputed conversion/verification manifests, `info` hashes, viewer state, and handoff URL.
 - [ ] Exact configuration and renderer are copied into the delivery.
 - [ ] Output root and important files are clearly reported to the user.

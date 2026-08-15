@@ -16,7 +16,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada 线粒体分割 | semantic mask、三维 instance、profile 对比、QC 图 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 embedding 的可变尺寸子体块选择 | 标注队列、UMAP/空间审核、获批清单 |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | 新 EM 数据上的跨 Skill 模型适配 | 粗分割、选择性修正、训练交接、配对评估 |
-| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | CloudVolume 局部 overlay、密度图、平滑镜头与三维 mesh 展示 | storyboard、验证后 MP4、PLY mesh、Neuroglancer 交接 |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Neuroglancer 数据准备、局部 overlay、密度图、平滑镜头与三维 mesh 展示 | 验证后 precomputed、viewer 交接、MP4、PLY mesh |
 
 输入可包括 TIFF、NumPy、Zarr、N5、CloudVolume/precomputed，以及 FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等连续切片或体电镜数据。
 
@@ -38,7 +38,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 选择性标注由 `$suggest-em-annotations` 完成：它在固定预算下选择可变尺寸区域。专家查看 raw/coarse overlay，并在获批子体块内修正连通性。只有存在真实、固定版本的训练适配器时才执行训练。
 
-当分割产物与物理网格固定后，可调用 `$cloudvolume-video` 展示选定局部视野或 mesh 场景；它不会修改上游标签或模型决策。
+当分割产物与物理网格固定后，可调用 `$cloudvolume-video` 准备并验证派生的 Neuroglancer precomputed 图层，再展示选定局部视野或 mesh 场景；它不会修改上游标签或模型决策。
 
 ## 快速开始
 
@@ -113,10 +113,12 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 导出经过验证的训练交接，并在冻结 holdout 上比较适配后的 checkpoint。
 ```
 
-### 5. CloudVolume 局部视野与 mesh 展示
+### 5. Neuroglancer 准备与 CloudVolume 展示
 
 ```text
-请对这些肾脏 precomputed 数据使用 $cloudvolume-video。先审计物理对齐，
+请对这些肾脏数据使用 $cloudvolume-video。如果输入是 TIFF、NPY、Zarr 或 N5，
+先按明确的轴顺序和 voxel size 生成派生的 Neuroglancer precomputed 数据，
+做精确回读验证并生成 viewer 交接；已有 precomputed 输入则跳过转换。然后审计物理对齐，
 先用有界的 1 x 1 mm 背景 ROI 建立空间尺度，再展示皮质、皮髓交界、
 髓质和肾乳头的 200 x 112.5 um 匹配细节视野，不要使用全肾概览。
 依次渲染 raw EM、独立 masks、组合 overlay 和局部密度图。使用 smootherstep
@@ -224,7 +226,7 @@ EM-Skills/
 - MitoNet：[Skill](skills/mitonet-inference/SKILL.md) · [模型契约](skills/mitonet-inference/references/model-contract.md) · [配置](skills/mitonet-inference/references/config-schema.md)
 - 标注建议：[Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation 适配器](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [评估方案](skills/suggest-em-annotations/references/evaluation-protocol.md)
 - 自适应重建：[Skill](skills/bootstrap-em-segmentation/SKILL.md) · [跨 Skill 组合契约](skills/bootstrap-em-segmentation/references/composition-contract.md)
-- CloudVolume 视频：[Skill](skills/cloudvolume-video/SKILL.md) · [配置](skills/cloudvolume-video/references/config-schema.md) · [mesh 契约](skills/cloudvolume-video/references/mesh-contract.md) · [质量门禁](skills/cloudvolume-video/references/quality-gates.md)
+- CloudVolume 视频：[Skill](skills/cloudvolume-video/SKILL.md) · [配置](skills/cloudvolume-video/references/config-schema.md) · [precomputed 契约](skills/cloudvolume-video/references/precomputed-contract.md) · [mesh 契约](skills/cloudvolume-video/references/mesh-contract.md) · [质量门禁](skills/cloudvolume-video/references/quality-gates.md)
 
 ## License
 
