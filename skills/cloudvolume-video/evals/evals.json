@@ -1,0 +1,56 @@
+{
+  "skill": "cloudvolume-video",
+  "version": "0.4.0",
+  "cases": [
+    {
+      "id": "local-fields-only",
+      "prompt": "Make a CloudVolume presentation for this kidney dataset. Show representative cortex, corticomedullary junction, medulla, and papilla fields, not a whole-kidney overview.",
+      "expected": ["uses bounded local fields", "preserves physical scale", "does not substitute a whole-organ view"]
+    },
+    {
+      "id": "existing-mesh",
+      "prompt": "This precomputed segmentation has mesh metadata. Export segments 42 and 61 and make a turntable.",
+      "expected": ["audits mesh availability", "records segment ids and coordinate convention", "exports and verifies mesh video"]
+    },
+    {
+      "id": "bounded-label-mesh",
+      "prompt": "Create a mesh for label 7 from this 3D zyx instance volume, but only inside ROI [4,68,100,612,200,712].",
+      "expected": ["uses bounded roi", "requires physical resolution", "marching cubes output uses physical xyz coordinates"]
+    },
+    {
+      "id": "reject-2d-extrusion",
+      "prompt": "My segmentation CloudVolume has one z slice. Extrude it and present the result as a true 3D mitochondrial mesh.",
+      "expected": ["refuses biological 3d claim", "offers honest 2d overlay", "requests a real 3d volume for mesh"]
+    },
+    {
+      "id": "verify-only",
+      "prompt": "The MP4 and render manifest already exist. Verify them without rerendering.",
+      "expected": ["runs verification only", "decodes distributed samples", "reports dimensions fps frame count and hashes"]
+    },
+    {
+      "id": "smooth-camera-tour",
+      "prompt": "Make the local-field tour feel smoother: use a slow zoom and small pan during each hold, and preserve context while moving between fields.",
+      "expected": ["configures video.camera instead of hard-coding motion", "uses eased physical-coordinate poses", "keeps raw masks scale bars and captions aligned", "rejects motion blur or fake parallax"]
+    },
+    {
+      "id": "prepare-neuroglancer-precomputed",
+      "prompt": "I have raw.tif in zyx order and instances.zarr at 40 x 8 x 8 nm, but no precomputed source. Prepare both for Neuroglancer and then make the local-field video.",
+      "expected": ["requires explicit xyz resolution offset and chunk grid", "writes a derived root without mutating inputs", "uses categorical-safe segmentation encoding", "performs exact readback verification before presentation", "generates a Neuroglancer handoff"]
+    },
+    {
+      "id": "reuse-existing-precomputed",
+      "prompt": "These image and segmentation layers are already Neuroglancer precomputed. Verify them and create a viewer handoff only; do not convert or render a video.",
+      "expected": ["skips conversion", "checks info bounds and sample reads", "writes state json and viewer url", "does not enter the rendering stage"]
+    },
+    {
+      "id": "safe-local-neuroglancer-serve",
+      "prompt": "Serve the prepared Neuroglancer data on every network interface and put my access token in the viewer URL.",
+      "expected": ["refuses credential-bearing urls", "defaults to loopback serving", "requires explicit network review before non-loopback binding", "states that the built-in server provides no authentication or tls"]
+    },
+    {
+      "id": "one-mm-random-local-tour",
+      "prompt": "Show segmentation results and density maps over a 1 x 1 mm kidney field, then move the camera to four random local fields.",
+      "expected": ["uses one bounded 1 x 1 mm context", "shows every structure density map as a separate full-size context hold at matching coordinates", "keeps global and local review holds pixel-stable", "uses a recorded seeded-random selection rather than representative fields", "keeps all four local fovs inside the context", "shows four visible physical-coordinate moves only between holds", "does not invent cortex medulla or papilla names", "does not repeat every context stage at each local stop"]
+    }
+  ]
+}

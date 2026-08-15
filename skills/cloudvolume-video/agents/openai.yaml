@@ -1,0 +1,4 @@
+interface:
+  display_name: "CloudVolume Video"
+  short_description: "Prepare Neuroglancer data and build verified EM videos"
+  default_prompt: "Use $cloudvolume-video to prepare or audit my Neuroglancer data, keep scientific review holds locked, show requested density maps separately, and create a verified context/local camera or mesh delivery."

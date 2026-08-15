@@ -1,0 +1,83 @@
+{
+  "project_name": "local-em-presentation",
+  "precomputed": {
+    "root": "derived/precomputed",
+    "hash_source": false,
+    "datasets": [
+      {
+        "id": "raw-em", "label": "Raw EM",
+        "source": {"path": "data/raw-em.npy", "axes": "zyx"},
+        "output": "EM-WSI-Example", "layer_type": "image", "encoding": "raw",
+        "resolution_nm_xyz": [8, 8, 40], "voxel_offset_xyz": [0, 0, 0],
+        "chunk_size_xyz": [256, 256, 1]
+      },
+      {
+        "id": "mitochondria", "label": "Mitochondria",
+        "source": {"path": "data/mitochondria.npy", "axes": "zyx"},
+        "output": "EM-WSI-Example-Mito", "layer_type": "segmentation",
+        "encoding": "compressed_segmentation",
+        "resolution_nm_xyz": [8, 8, 40], "voxel_offset_xyz": [0, 0, 0],
+        "chunk_size_xyz": [128, 128, 16], "segment_properties": {"1": "Mitochondria"}
+      }
+    ]
+  },
+  "source_root": "derived/precomputed",
+  "output_root": "derived/cloudvolume-video",
+  "video": {
+    "width": 1920, "height": 1080, "fps": 30, "include_overview": false,
+    "preview_resolution_nm": 640, "detail_resolution_nm": 160,
+    "detail_fov_um": 200, "detail_scale_bar_um": 10,
+    "overview_scale_bar_um": 1000, "density_bin_um": 10.24,
+    "density_display_quantile": 0.99,
+    "metadata_seconds": 3, "isolated_seconds": 2.5,
+    "density_seconds": 2.5, "all_seconds": 3,
+    "zoom_seconds": 4, "hold_seconds": 3, "move_seconds": 3,
+    "camera": {
+      "easing": "smootherstep", "entry_start_fov_multiplier": 5.0,
+      "hold_pan_fraction": 0.0, "hold_zoom_fraction": 0.0,
+      "transition_zoom_out_fraction": 0.16
+    },
+    "fade_frames": 15, "png_frames": true, "png_compression": 2,
+    "codec": "mp4v", "bulk_missing_mip_max_gb": 64,
+    "source_tile_max_pixels": 4096,
+    "tissue": {"min_intensity": 1, "max_intensity": 249}
+  },
+  "neuroglancer": {
+    "base_url": "http://127.0.0.1:1337",
+    "viewer_url": "https://neuroglancer-demo.appspot.com/",
+    "show_axis_lines": false, "show_scale_bar": true,
+    "background": "#000000"
+  },
+  "specimens": [{
+    "id": "local-field", "label": "Local tissue field", "raw": "EM-WSI-Example",
+    "story": {
+      "context_roi_um_xyxy": [875, 1875, 1660, 2660],
+      "local_stops": {
+        "mode": "seeded_random", "seed": 20260815, "count": 4,
+        "min_tissue_fraction": 0.7, "min_center_distance_um": 220
+      }
+    },
+    "layers": [{
+      "id": "mitochondria", "label": "Mitochondria", "dataset": "EM-WSI-Example-Mito",
+      "label_value": null, "segment_ids": [1], "color_rgb": [0, 145, 20],
+      "opacity": 0.54, "object_alpha": 0.7
+    }],
+    "stops_um": [[420, 620], [680, 510], [810, 760], [560, 840]],
+    "excluded_layers": []
+  }],
+  "mesh_render": {
+    "width": 1280, "height": 720, "fps": 24, "seconds": 8,
+    "elevation_deg": 22, "orbit_degrees": 360,
+    "mesh_color_rgb": [74, 190, 167], "background_rgb": [9, 14, 23],
+    "max_render_faces": 120000, "allow_face_sampling": false,
+    "smooth_shading": true, "png_frames": false, "codec": "mp4v"
+  },
+  "mesh_scenes": [{
+    "id": "local-mesh",
+    "source": {
+      "type": "precomputed", "uri": "precomputed:///path/to/segmentation",
+      "segment_ids": [42], "mip": 0, "coordinates": "nm"
+    },
+    "render": {"title": "Segment 42 — bounded local field"}
+  }]
+}
