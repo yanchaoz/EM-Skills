@@ -23,14 +23,14 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 单阶段请求直接交给对应 Skill；当请求跨越粗分割、选择性修正和模型适配时，由 `$bootstrap-em-segmentation` 协调。
 
-```mermaid
-flowchart LR
-    A["未见过的 3D EM<br/>xy: 5–10 nm"] --> B["$segneuron-inference<br/>零样本粗分割"]
-    B --> C["$suggest-em-annotations<br/>可变尺寸区域选择"]
-    C --> D["人工专家<br/>连通性修正"]
-    D --> E["SegNeuron 微调<br/>或轻量模型训练"]
-    E --> F["$segneuron-inference<br/>配对 holdout 评估"]
-    F -. "仅在训练区域迭代" .-> C
+```text
+未见过的 3D EM（xy: 5–10 nm）
+  → $segneuron-inference：零样本粗分割
+  → $suggest-em-annotations：可变尺寸区域选择
+  → 人工专家：连通性修正
+  → SegNeuron 微调或轻量模型训练
+  → $segneuron-inference：配对 holdout 评估
+  ↺ 仅从训练区域选择新样本并继续迭代
 ```
 
 **5–10 nm xy 是适用性检查范围，不是性能保证。** 通用 checkpoint 可能在未见数据上产生较好的粗分割，但只有通过代表性 Pilot 和独立 holdout 评估后，才能声称达到突出性能。

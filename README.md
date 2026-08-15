@@ -23,14 +23,14 @@ Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and oth
 
 Single-stage requests go directly to the relevant Skill. Requests that span reconstruction, selective correction, and adaptation use `$bootstrap-em-segmentation` as the coordinator.
 
-```mermaid
-flowchart LR
-    A["Unseen 3D EM<br/>xy: 5–10 nm"] --> B["$segneuron-inference<br/>zero-shot coarse reconstruction"]
-    B --> C["$suggest-em-annotations<br/>variable-size region selection"]
-    C --> D["Human expert<br/>connectivity correction"]
-    D --> E["SegNeuron fine-tuning<br/>or lightweight-model training"]
-    E --> F["$segneuron-inference<br/>paired holdout evaluation"]
-    F -. "iterate on training regions" .-> C
+```text
+Unseen 3D EM (xy: 5–10 nm)
+  → $segneuron-inference: zero-shot coarse reconstruction
+  → $suggest-em-annotations: variable-size region selection
+  → Human expert: connectivity correction
+  → SegNeuron fine-tuning or lightweight-model training
+  → $segneuron-inference: paired holdout evaluation
+  ↺ Iterate with new selections from training regions only
 ```
 
 The **5–10 nm xy range is an applicability check, not a performance guarantee**. A general-purpose checkpoint may provide a strong coarse reconstruction on an unseen volume, but claims of outstanding performance require a representative pilot and held-out evaluation.
