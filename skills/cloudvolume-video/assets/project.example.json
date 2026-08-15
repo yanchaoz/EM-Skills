@@ -1,0 +1,50 @@
+{
+  "project_name": "local-em-presentation",
+  "source_root": "/path/to/precomputed-datasets",
+  "output_root": "derived/cloudvolume-video",
+  "video": {
+    "width": 1920, "height": 1080, "fps": 30, "include_overview": false,
+    "preview_resolution_nm": 640, "detail_resolution_nm": 160,
+    "detail_fov_um": 200, "detail_scale_bar_um": 10,
+    "overview_scale_bar_um": 1000, "density_bin_um": 10.24,
+    "density_display_quantile": 0.99,
+    "metadata_seconds": 3, "isolated_seconds": 2.5,
+    "density_seconds": 2.5, "all_seconds": 3,
+    "zoom_seconds": 4, "hold_seconds": 3, "move_seconds": 3,
+    "fade_frames": 15, "png_frames": true, "png_compression": 2,
+    "codec": "mp4v", "bulk_missing_mip_max_gb": 64,
+    "source_tile_max_pixels": 4096,
+    "tissue": {"min_intensity": 1, "max_intensity": 249}
+  },
+  "neuroglancer": {
+    "base_url": "http://127.0.0.1:1337",
+    "viewer_url": "https://neuroglancer-demo.appspot.com/",
+    "show_axis_lines": false, "show_scale_bar": true,
+    "background": "#000000"
+  },
+  "specimens": [{
+    "id": "local-field", "label": "Local tissue field", "raw": "EM-WSI-Example",
+    "layers": [{
+      "id": "mitochondria", "label": "Mitochondria", "dataset": "EM-WSI-Example-Mito",
+      "label_value": null, "segment_ids": [1], "color_rgb": [0, 145, 20],
+      "opacity": 0.54, "object_alpha": 0.7
+    }],
+    "stops_um": [[420, 620], [680, 510], [810, 760], [560, 840]],
+    "excluded_layers": []
+  }],
+  "mesh_render": {
+    "width": 1280, "height": 720, "fps": 24, "seconds": 8,
+    "elevation_deg": 22, "orbit_degrees": 360,
+    "mesh_color_rgb": [74, 190, 167], "background_rgb": [9, 14, 23],
+    "max_render_faces": 120000, "allow_face_sampling": false,
+    "smooth_shading": true, "png_frames": false, "codec": "mp4v"
+  },
+  "mesh_scenes": [{
+    "id": "local-mesh",
+    "source": {
+      "type": "precomputed", "uri": "precomputed:///path/to/segmentation",
+      "segment_ids": [42], "mip": 0, "coordinates": "nm"
+    },
+    "render": {"title": "Segment 42 — bounded local field"}
+  }]
+}

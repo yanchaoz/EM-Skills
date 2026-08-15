@@ -16,6 +16,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Local-field CloudVolume overlays, density views, and 3D mesh presentation | storyboards, verified MP4, PLY mesh, Neuroglancer handoff |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
@@ -37,6 +38,8 @@ The **5–10 nm xy range is an applicability check, not a performance guarantee*
 
 Selective annotation is performed by `$suggest-em-annotations`: it selects variable-size regions under a declared budget. Experts then inspect raw/coarse overlays and correct connectivity inside the approved boxes. Training runs only through a real, pinned training adapter.
 
+After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` can present selected local fields or mesh scenes without changing upstream labels or model decisions.
+
 ## Quick start
 
 ### Install
@@ -48,6 +51,7 @@ Install skills/segneuron-inference from yanchaoz/EM-Skills.
 Install skills/mitonet-inference from yanchaoz/EM-Skills.
 Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
 Install skills/bootstrap-em-segmentation from yanchaoz/EM-Skills.
+Install skills/cloudvolume-video from yanchaoz/EM-Skills.
 ```
 
 Install the full directory, not only `SKILL.md`, then start a new Codex task so the Skills can be discovered.
@@ -110,6 +114,17 @@ raw/coarse overlays for expert connectivity correction, and export a verified
 training handoff. Compare any adapted checkpoint on a frozen holdout.
 ```
 
+### 5. Local CloudVolume and mesh presentation
+
+```text
+Use $cloudvolume-video on these kidney precomputed datasets. Audit physical
+alignment, then show matched local fields from cortex, corticomedullary
+junction, medulla, and renal papilla—do not use a whole-kidney overview.
+Set video.include_overview=false; render raw/segmentation overlays and a
+separate regional density comparison. If valid 3D mesh
+metadata exist, export the requested segment IDs and make a verified turntable.
+```
+
 ## What a Skill run preserves
 
 | Concern | Behavior |
@@ -164,6 +179,16 @@ The 8 nm and 16 nm MitoNet-mini profiles found the same mitochondrial candidate 
 
 The queue remains a human-review draft; embedding coverage alone does not prove downstream segmentation improvement. [Complete annotation-advisor record](examples/ac3ac4-annotation-advisor/README.md)
 
+### CloudVolume video: kidney local fields
+
+The presentation uses four matched 20 nm/px local fields—cortex, corticomedullary junction, medulla, and renal papilla—and deliberately excludes a whole-kidney overview. The density panel compares local regions; it is not a ground-truth accuracy result.
+
+| Four local EM fields | Local region density |
+| --- | --- |
+| ![Kidney local EM fields](examples/kidney-local-cloudvolume-video/four-local-fields-20nm.jpg) | ![Kidney local density comparison](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
+
+This single-section kidney source is not presented as a true 3D mesh. Mesh retrieval, bounded label-to-mesh extraction, complete PLY export, headless turntable rendering, and video verification are covered separately by the Skill tests. [Complete local-field record](examples/kidney-local-cloudvolume-video/README.md)
+
 ## Scientific guardrails
 
 - Use physical voxel size, not array shape alone, when selecting a model grid.
@@ -182,7 +207,8 @@ EM-Skills/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
-│   └── bootstrap-em-segmentation/
+│   ├── bootstrap-em-segmentation/
+│   └── cloudvolume-video/
 ├── examples/
 ├── README.md
 └── README.zh-CN.md
@@ -196,6 +222,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 - MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)
 - Annotation advisor: [Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
 - Adaptive reconstruction: [Skill](skills/bootstrap-em-segmentation/SKILL.md) · [cross-Skill composition contract](skills/bootstrap-em-segmentation/references/composition-contract.md)
+- CloudVolume video: [Skill](skills/cloudvolume-video/SKILL.md) · [configuration](skills/cloudvolume-video/references/config-schema.md) · [mesh contract](skills/cloudvolume-video/references/mesh-contract.md) · [quality gates](skills/cloudvolume-video/references/quality-gates.md)
 
 ## License
 

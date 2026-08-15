@@ -16,6 +16,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada 线粒体分割 | semantic mask、三维 instance、profile 对比、QC 图 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 embedding 的可变尺寸子体块选择 | 标注队列、UMAP/空间审核、获批清单 |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | 新 EM 数据上的跨 Skill 模型适配 | 粗分割、选择性修正、训练交接、配对评估 |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | CloudVolume 局部视野、密度图与三维 mesh 展示 | storyboard、验证后 MP4、PLY mesh、Neuroglancer 交接 |
 
 输入可包括 TIFF、NumPy、Zarr、N5、CloudVolume/precomputed，以及 FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等连续切片或体电镜数据。
 
@@ -37,6 +38,8 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 选择性标注由 `$suggest-em-annotations` 完成：它在固定预算下选择可变尺寸区域。专家查看 raw/coarse overlay，并在获批子体块内修正连通性。只有存在真实、固定版本的训练适配器时才执行训练。
 
+当分割产物与物理网格固定后，可调用 `$cloudvolume-video` 展示选定局部视野或 mesh 场景；它不会修改上游标签或模型决策。
+
 ## 快速开始
 
 ### 安装
@@ -48,6 +51,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 请从 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
 请从 yanchaoz/EM-Skills 安装 skills/suggest-em-annotations。
 请从 yanchaoz/EM-Skills 安装 skills/bootstrap-em-segmentation。
+请从 yanchaoz/EM-Skills 安装 skills/cloudvolume-video。
 ```
 
 请安装整个目录，而不是只复制 `SKILL.md`。安装后新建 Codex 任务，使 Skills 被重新发现。
@@ -109,6 +113,16 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 导出经过验证的训练交接，并在冻结 holdout 上比较适配后的 checkpoint。
 ```
 
+### 5. CloudVolume 局部视野与 mesh 展示
+
+```text
+请对这些肾脏 precomputed 数据使用 $cloudvolume-video。先审计物理对齐，
+再展示皮质、皮髓交界、髓质和肾乳头的匹配局部视野，不要使用全肾概览。
+设置 video.include_overview=false；渲染 raw/segmentation overlay，并单独
+比较区域密度。如果存在有效的三维 mesh
+元数据，导出指定 segment IDs，并生成经过验证的 turntable 视频。
+```
+
 ## Skill 运行时保留什么
 
 | 关注点 | 处理方式 |
@@ -163,6 +177,16 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 
 该队列仍是需要人工审核的 draft；embedding coverage 本身不能证明下游分割得到提升。[完整标注建议记录](examples/ac3ac4-annotation-advisor/README.md)
 
+### CloudVolume 视频：肾脏局部视野
+
+展示严格使用四个 20 nm/px 的匹配局部视野：皮质、皮髓交界、髓质和肾乳头，不包含全肾概览。密度图比较局部区域，不能替代 ground-truth 准确率评估。
+
+| 四个局部 EM 视野 | 局部区域密度 |
+| --- | --- |
+| ![肾脏局部 EM 视野](examples/kidney-local-cloudvolume-video/four-local-fields-20nm.jpg) | ![肾脏局部密度对比](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
+
+该肾脏来源是单切片 WSI，因此不会被包装成真实三维 mesh 结果。Skill 测试会独立验证已有 mesh 读取、有界标签转 mesh、完整 PLY 导出、无界面 turntable 渲染与视频校验。[完整局部视野记录](examples/kidney-local-cloudvolume-video/README.md)
+
 ## 科研质量门禁
 
 - 根据真实 voxel size 选择模型网格，不只依据数组尺寸。
@@ -181,7 +205,8 @@ EM-Skills/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
-│   └── bootstrap-em-segmentation/
+│   ├── bootstrap-em-segmentation/
+│   └── cloudvolume-video/
 ├── examples/
 ├── README.md
 └── README.zh-CN.md
@@ -195,6 +220,7 @@ EM-Skills/
 - MitoNet：[Skill](skills/mitonet-inference/SKILL.md) · [模型契约](skills/mitonet-inference/references/model-contract.md) · [配置](skills/mitonet-inference/references/config-schema.md)
 - 标注建议：[Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation 适配器](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [评估方案](skills/suggest-em-annotations/references/evaluation-protocol.md)
 - 自适应重建：[Skill](skills/bootstrap-em-segmentation/SKILL.md) · [跨 Skill 组合契约](skills/bootstrap-em-segmentation/references/composition-contract.md)
+- CloudVolume 视频：[Skill](skills/cloudvolume-video/SKILL.md) · [配置](skills/cloudvolume-video/references/config-schema.md) · [mesh 契约](skills/cloudvolume-video/references/mesh-contract.md) · [质量门禁](skills/cloudvolume-video/references/quality-gates.md)
 
 ## License
 
