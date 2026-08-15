@@ -1,6 +1,6 @@
 # EM-Skills
 
-**Reusable Agent Skills for Electron Microscopy and Volume EM**
+**Reusable Agent Skills for Electron Microscopy Analysis**
 
 English | [简体中文](README.zh-CN.md)
 
