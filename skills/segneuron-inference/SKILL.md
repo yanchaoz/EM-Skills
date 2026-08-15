@@ -93,6 +93,12 @@ Use `segneuron_visualize.py beta-sweep` with repeated `--instance BETA=PATH` arg
 - For a final delivery, read [quality gates](references/quality-gates.md) and include configuration, provenance, logs, QC figures, known limitations, and the relevant intermediate artifacts.
 - With ground truth, report split and merge components separately using declared metrics. Without it, report stratified manual review as QC, not accuracy.
 
+## Hand off to dataset adaptation
+
+When the user's goal continues from coarse reconstruction into selective expert correction and model adaptation, invoke `$bootstrap-em-segmentation` rather than extending this inference Skill into training. Provide it with the immutable source identity, source-grid coarse instances, physical-grid transforms, beta-selection record, checkpoint provenance, QC findings, and frozen holdout bounds.
+
+The coordinator delegates variable-size correction-region selection to `$suggest-em-annotations`, preserves the zero-shot result as a baseline, and defines the corrected-label training handoff. Do not manually choose convenient correction ROIs and call that selective annotation.
+
 ## Fail closed for scientific claims
 
 Do not approve or finalize a result when physical metadata are contradictory, model/checkpoint identity is mutable, source and output overlap, label dtype may overflow, physical bounds drift beyond tolerance, blockwise labels are unreconciled, or severe seams/merges/topology loss remain. Report the blocking evidence and the next safe action.

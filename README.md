@@ -1,478 +1,201 @@
 # EM-Skills
 
-**Reusable Agent Skills for Electron Microscopy (EM / Volume EM)**
+**Reusable Agent Skills for Electron Microscopy and Volume EM**
 
 English | [简体中文](README.zh-CN.md)
 
-EM-Skills is a collection of reusable Agent Skills for professional electron microscopy analysis. Each Skill combines domain guidance, task routing, deterministic scripts, reference material, and scientific quality gates.
+EM-Skills packages specialized EM methods as task-routed Agent Skills. Each Skill combines domain guidance, deterministic scripts, model/configuration references, and scientific quality gates.
 
-A Skill is not a fixed end-to-end workflow. It can audit one dataset, render an existing result, compare postprocessing candidates, run a pilot, or coordinate a complete analysis. The Agent should select the smallest set of capabilities that satisfies the request and reuse artifacts that already exist.
+Use one Skill for a focused task—such as auditing metadata, comparing beta values, or visualizing existing labels—or compose several Skills for dataset adaptation. The Agent should reuse existing artifacts and run only the stages needed for the requested outcome.
 
-The goal is simple:
+## Skills at a glance
 
-> Turn specialized EM methods into reusable capabilities that AI Agents can select, execute, inspect, and verify.
+| Skill | Use it for | Main outputs |
+| --- | --- | --- |
+| [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
+| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
+| [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
 
----
+Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
-## Available Skills
+## How the Skills work together
 
-| Skill                                                        | Purpose                                                       |
-| ------------------------------------------------------------ | ------------------------------------------------------------- |
-| [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron-based 3D neuron instance segmentation for Volume EM |
-| [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial semantic and 3D instance segmentation |
-| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | EMFoundation embedding-guided variable-size subvolume selection for human annotation |
+Single-stage requests go directly to the relevant Skill. Requests that span reconstruction, selective correction, and adaptation use `$bootstrap-em-segmentation` as the coordinator.
 
-### Skill design
-
-Every Skill follows the same operating model:
-
-* The frontmatter description determines when the Skill should activate.
-* `SKILL.md` routes the request to the smallest relevant capability.
-* `scripts/` provides reproducible operations instead of asking the Agent to re-create commands or algorithms.
-* `references/` is loaded only when a task needs the corresponding model, configuration, deployment, or QC detail.
-* Scientific approval gates apply to claims and final delivery; they do not force a full pipeline for a narrow audit or visualization request.
-
-`segneuron-inference` is designed for datasets such as:
-
-* FIB-SEM
-* SBF-SEM
-* ATUM-SEM
-* ssTEM
-* other serial-section or volume electron microscopy datasets
-
----
-
-## Installation
-
-In Codex, simply ask:
-
-```text
-Install skills/segneuron-inference from the GitHub repository yanchaoz/EM-Skills.
-Install skills/mitonet-inference from the GitHub repository yanchaoz/EM-Skills.
-Install skills/suggest-em-annotations from the GitHub repository yanchaoz/EM-Skills.
+```mermaid
+flowchart LR
+    A["Unseen 3D EM<br/>xy: 5–10 nm"] --> B["$segneuron-inference<br/>zero-shot coarse reconstruction"]
+    B --> C["$suggest-em-annotations<br/>variable-size region selection"]
+    C --> D["Human expert<br/>connectivity correction"]
+    D --> E["SegNeuron fine-tuning<br/>or lightweight-model training"]
+    E --> F["$segneuron-inference<br/>paired holdout evaluation"]
+    F -. "iterate on training regions" .-> C
 ```
 
-Install the complete skill directory rather than copying only `SKILL.md`.
+The **5–10 nm xy range is an applicability check, not a performance guarantee**. A general-purpose checkpoint may provide a strong coarse reconstruction on an unseen volume, but claims of outstanding performance require a representative pilot and held-out evaluation.
 
-After installation, start a new Codex task so the skill can be discovered.
+Selective annotation is performed by `$suggest-em-annotations`: it selects variable-size regions under a declared budget. Experts then inspect raw/coarse overlays and correct connectivity inside the approved boxes. Training runs only through a real, pinned training adapter.
 
----
+## Quick start
 
-## How to Use
+### Install
 
-Invoke a Skill with natural language and ask for either one capability or a complete outcome. For example, all of the following are valid:
-
-```text
-Use $segneuron-inference to audit the axes and physical grid of this volume. Do not run inference.
-Use $segneuron-inference to compare these existing beta candidates and make an overlay figure.
-Use $mitonet-inference to verify this existing mitochondrial instance volume against the raw EM.
-Use $suggest-em-annotations to plot the existing selection in UMAP without re-extracting embeddings.
-```
-
-For an end-to-end request, the Skill expands only the stages needed to reach the final outcome.
-
-For example:
+Ask Codex to install one or more complete Skill directories:
 
 ```text
-Use the segneuron-inference skill on this zyx Volume EM dataset.
-
-First inspect the dataset shape, axis order, and physical voxel resolution.
-Plan the appropriate SegNeuron model grid based on the real physical resolution.
-
-Run a representative pilot before processing the full volume.
-
-Then perform affinity inference and generate several instance-segmentation candidates
-for beta = [0.10, 0.25, 0.50, 0.75].
-
-Create comparison figures at identical physical locations so I can inspect
-merge errors, split errors, fragmentation, foreground leakage, and z continuity.
-
-Wait for my beta selection before generating the final 3D instance segmentation.
-
-Finally restore the labels to the target resolution, verify the outputs,
-and generate quality-control visualizations.
+Install skills/segneuron-inference from yanchaoz/EM-Skills.
+Install skills/mitonet-inference from yanchaoz/EM-Skills.
+Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
+Install skills/bootstrap-em-segmentation from yanchaoz/EM-Skills.
 ```
 
-A shorter instruction also works:
+Install the full directory, not only `SKILL.md`, then start a new Codex task so the Skills can be discovered.
+
+### Provide the essentials
+
+For a new dataset, provide as many of these as possible:
+
+- data path or URI and format;
+- axis order, such as `zyx`;
+- physical voxel size in nm;
+- requested task and output location;
+- checkpoint/runtime/backend when execution is required;
+- validation/test bounds that must remain untouched.
+
+Missing or contradictory scientific metadata is reported rather than guessed.
+
+## Prompt examples
+
+### 1. Neuron reconstruction with beta review
 
 ```text
-Use segneuron-inference on this Volume EM dataset.
-Run a pilot first, compare multiple beta values,
-wait for my selection, and then generate the final neuron instances.
+Use $segneuron-inference on this zyx Volume EM dataset at 50 × 4 × 4 nm.
+Run a representative pilot, generate affinities, and compare beta values
+[0.10, 0.25, 0.50, 0.75] at identical physical locations. Show raw EM,
+affinity, membrane, and instance overlays. Wait for my beta choice before finalizing.
 ```
 
-### MitoNet example
+For a narrower task:
 
 ```text
-Use the mitonet-inference skill on this zyx Volume EM dataset.
-Audit axis order and physical voxel resolution, then run a representative pilot.
-Compare named MitoNet profiles across plausible xy scales and thresholds.
-Render raw EM, mitochondrial foreground, instance overlays, and XZ continuity.
-Wait for my profile selection before full-volume inference and label restoration.
+Use $segneuron-inference to compare these existing beta candidates and make
+an overlay figure only. Do not rerun inference.
 ```
 
-The MitoNet workflow keeps semantic foreground, per-plane panoptic instances, 3D stack matching, source-grid restoration, and scientific approval as separate gates.
-
-
-### EM annotation advisor example
+### 2. Mitochondrial segmentation
 
 ```text
-Use the suggest-em-annotations skill to plan variable-size neuron-segmentation annotation regions
-from this zyx Volume EM dataset under a fixed annotation-volume budget.
-Audit voxel size, axes, source identity, and holdout bounds. Use the pinned EMFoundation BASE
-encoder to extract real 512-D embeddings, run multi-scale budgeted coverage selection,
-and render the spatial map, embedding coverage, raw EM gallery, coverage curve, and review queue.
-Wait for explicit accept/reject decisions before exporting the final annotation manifest.
+Use $mitonet-inference on this zyx EM volume. Audit voxel size, run a pilot,
+compare the named 8 nm and 16 nm profiles, and render raw, foreground,
+instance-overlay, and XZ-continuity panels. Wait for my profile selection.
 ```
 
-The workflow extends the SL-SSNS constrained coverage-rate idea into an auditable multi-scale, cost-aware annotation advisor. It never turns selected regions into labels, excludes configured validation/test regions, records source/model/configuration hashes, and requires a named human reviewer before finalization.
-
----
-
-## Reference End-to-End Workflow
-
-For a new SegNeuron segmentation with no reusable artifacts, the reference workflow is:
+### 3. Selective annotation
 
 ```text
-Source Volume EM
-        ↓
-Data & Metadata Audit
-        ↓
-Physical Resolution Planning
-        ↓
-Representative Pilot
-        ↓
-SegNeuron Affinity Inference
-        ↓
-Multi-Beta Instance Candidates
-        ↓
-Visual Comparison
-        ↓
-Human Beta Selection
-        ↓
-Final 3D Instance Segmentation
-        ↓
-Label Restoration
-        ↓
-Verification & Quality Control
-        ↓
-Final Output
+Use $suggest-em-annotations to select variable-size neuron-annotation regions
+from this volume under a 24,000,000-voxel budget. Use the pinned EMFoundation
+BASE encoder, exclude my holdout bounds, render UMAP/spatial/raw review figures,
+and wait for accept/reject decisions before exporting the final queue.
 ```
 
-### 1. Data audit
-
-The skill first checks essential dataset information, including:
-
-* volume dimensions;
-* axis order;
-* voxel resolution;
-* physical units;
-* image characteristics;
-* compatibility with the model input grid.
-
-Physical metadata is treated as part of the scientific workflow rather than an optional implementation detail.
-
----
-
-### 2. Physical-resolution planning
-
-Volume EM datasets often have different voxel sizes and substantial z anisotropy.
-
-The skill therefore plans model input according to **physical resolution**, rather than simply resizing arrays based on image dimensions.
-
-This helps maintain consistent biological scale across datasets acquired with different microscopes or imaging protocols.
-
----
-
-### 3. Pilot before full-volume processing
-
-A small representative region is processed first.
-
-The pilot is used to verify:
-
-* orientation;
-* resolution handling;
-* model compatibility;
-* affinity predictions;
-* segmentation behavior;
-* visualization;
-* downstream postprocessing.
-
-Only after the pilot is considered technically reasonable should the workflow proceed to larger-scale processing.
-
----
-
-### 4. Affinity inference
-
-SegNeuron predicts affinity information describing local neuronal connectivity.
-
-The affinity output is then used as the basis for instance-level reconstruction.
-
-Inference and instance reconstruction are treated as separate stages so that failures can be diagnosed more clearly.
-
----
-
-### 5. Multi-beta comparison
-
-Instance reconstruction can change substantially with the postprocessing parameter `beta`.
-
-Instead of silently using one predefined value, the skill can generate several candidates, for example:
+### 4. Adaptation on an unseen dataset
 
 ```text
-beta = 0.10
-beta = 0.25
-beta = 0.50
-beta = 0.75
+Use $bootstrap-em-segmentation on this unseen 30 × 8 × 8 nm zyx EM volume.
+Generate a zero-shot SegNeuron coarse reconstruction, use
+$suggest-em-annotations to choose variable-size correction regions, prepare
+raw/coarse overlays for expert connectivity correction, and export a verified
+training handoff. Compare any adapted checkpoint on a frozen holdout.
 ```
 
-All candidates are compared at the same physical locations.
+## What a Skill run preserves
 
-Important failure modes include:
+| Concern | Behavior |
+| --- | --- |
+| Physical scale | Tracks axes, voxel size, offsets, bounds, and source/model/delivery grids |
+| Reproducibility | Pins data, code, checkpoint, configuration, command, and output identities |
+| Expensive execution | Uses audits, plans, pilots, and dry-run job specifications before scaling |
+| Human decisions | Records beta/profile choices and annotation accept/reject decisions |
+| Scientific claims | Separates integrity/QC from accuracy and requires holdout evidence for performance claims |
+| Failure handling | Stops on unresolved metadata, leakage, grid mismatch, mutable models, or invalid artifacts |
 
-* merged neurites;
-* over-segmentation;
-* fragmented processes;
-* incorrect foreground expansion;
-* poor z continuity;
-* local topology errors.
+Full field contracts and commands live in each Skill's `references/` and `scripts/` directories.
 
-The workflow does **not** automatically select beta from the number of reconstructed objects.
+## Example results
 
----
+These examples demonstrate execution and QC; they are not interchangeable with ground-truth benchmarks.
 
-### 6. Human selection
+### SegNeuron: `syn178/raw[:18, :256, :256]`
 
-The user reviews the candidate segmentations and explicitly chooses the preferred beta.
+- recorded source/model grids: `50 × 4 × 4 nm → 50 × 8 × 8 nm`;
+- three-channel affinity prediction;
+- 35 non-background instances at the recorded `beta = 0.25`;
+- limited to 18 z slices, with no neuron-instance ground truth.
 
-This creates a deliberate human-in-the-loop checkpoint before final whole-volume reconstruction.
+| Four-panel summary | Beta comparison |
+| --- | --- |
+| ![syn178 SegNeuron summary](examples/syn178-pilot/segneuron-summary.png) | ![syn178 beta sweep](examples/syn178-pilot/beta-sweep.png) |
 
-A previously selected beta is not assumed to remain valid when the relevant configuration or data-processing settings change.
+[SegNeuron pilot record](examples/syn178-pilot/README.md)
 
----
+### MitoNet: `syn178/raw[:18, :256, :256]`
 
-### 7. Final reconstruction
+The 8 nm and 16 nm MitoNet-mini profiles found the same mitochondrial candidate with binary-mask Dice `0.8710`. This is a profile/QC comparison without mitochondrial ground truth.
 
-After the user selects beta, the final 3D neuron instances are generated.
+| 8 nm profile | 16 nm profile |
+| --- | --- |
+| ![MitoNet 8 nm QC](examples/syn178-mitonet-pilot/qc-scale-8nm.png) | ![MitoNet 16 nm QC](examples/syn178-mitonet-pilot/qc-scale-16nm.png) |
 
-The resulting segmentation can then be restored from the model grid to the desired output grid while preserving discrete instance identities.
+[MitoNet pilot record](examples/syn178-mitonet-pilot/README.md)
 
----
-
-### 8. Verification and quality control
-
-A completed run is not automatically considered scientifically validated.
-
-The workflow also checks whether outputs are internally consistent and whether the available evidence is sufficient for downstream use.
-
-A result may therefore be:
-
-* technically completed;
-* structurally valid;
-* but still withheld from scientific approval.
-
-This distinction is intentional.
-
----
-
-## Result Visualization
-
-The skill provides standardized scientific visualizations for inspecting the complete SegNeuron workflow.
-
-A typical summary includes:
-
-1. raw EM;
-2. SegNeuron affinity prediction;
-3. membrane or boundary evidence;
-4. neuron instance overlay.
-
-Example:
-
-![syn178 SegNeuron summary](examples/syn178-pilot/segneuron-summary.png)
-
-The overlay uses deterministic instance colors so that the same instance can be followed consistently across slices and comparisons.
-
-Physical voxel resolution is also used when generating scale bars and orthogonal views.
-
----
-
-## Beta Comparison
-
-The same affinity prediction can be reconstructed with multiple beta values and displayed side by side.
-
-Example:
-
-![syn178 beta sweep](examples/syn178-pilot/beta-sweep.png)
-
-This allows direct inspection of how instance topology changes as postprocessing becomes more or less aggressive.
-
-The selected beta should be based on segmentation quality rather than on object count alone.
-
----
-
-## syn178 Pilot Example
-
-The repository includes a small pilot example based on:
-
-```text
-syn178/raw[:18, :256, :256]
-```
-
-Under the recorded metadata assumption:
-
-```text
-source grid: 50 × 4 × 4 nm
-model grid:  50 × 8 × 8 nm
-```
-
-the pilot produced a three-channel SegNeuron affinity volume and corresponding 3D neuron-instance candidates.
-
-Using the recorded pilot configuration at:
-
-```text
-beta = 0.25
-```
-
-the official SegNeuron FRMC postprocessor produced 35 non-background 3D instances.
-
-The example demonstrates that the complete workflow can be executed end to end.
-
-It does **not** claim production-level segmentation accuracy.
-
----
-
-## Why the Pilot Is Not Considered Scientific Validation
-
-The syn178 example is intentionally treated as a workflow demonstration rather than a benchmark.
-
-Scientific approval remains withheld because:
-
-* only 18 z slices are included;
-* the dataset is strongly anisotropic;
-* the physical resolution is based on metadata that still requires confirmation;
-* the z extent is limited for evaluating long-range neuronal continuity;
-* neuron-instance ground truth is unavailable.
-
-In other words:
-
-> A workflow that runs successfully is not automatically a scientifically validated reconstruction.
-
----
-
-## MitoNet syn178 Pilot
-
-The repository includes a remote MitoNet-mini workflow demonstration on `syn178/raw[:18, :256, :256]`. The 8 nm and 16 nm profiles detected the same mitochondrial candidate with binary-mask Dice `0.8710`; the 8 nm result retained a slightly larger boundary and one additional z slice.
-
-![syn178 MitoNet 8 nm QC](examples/syn178-mitonet-pilot/qc-scale-8nm.png)
-
-![syn178 MitoNet 16 nm QC](examples/syn178-mitonet-pilot/qc-scale-16nm.png)
-
-See the [MitoNet pilot record](examples/syn178-mitonet-pilot/README.md) for parameters, hashes, limitations, and vector figures. This is an execution and QC demonstration, not a ground-truth benchmark.
-
----
-
-## AC3AC4 Real Annotation-Advisor Pilot
-
-The annotation advisor was executed remotely on the real `Figure2-Exps/data/AC3AC4/0.tif` volume with `Pretraining_mito/models/BASE/learner.ckpt`.
+### Annotation advisor: AC3/AC4 `0.tif`
 
 - input: `256 × 1024 × 1024`, `uint8`, zyx;
-- encoder: 74/74 compatible keys loaded, 512-D pooled PNIv2 features;
-- embeddings: `3375 × 512`;
+- embeddings: `3375 × 512` from the EMFoundation BASE encoder;
 - candidates: 8,410 boxes across four sizes;
-- budget: 24,000,000 source voxels, maximum six boxes;
-- selected: six boxes using 22,806,528 voxels;
-- embedding coverage: 49.63% at `k=30`.
+- selected: six boxes using 22,806,528 of 24,000,000 budgeted voxels;
+- embedding coverage: 49.63% at `k = 30`.
 
-![AC3AC4 annotation selection overview](examples/ac3ac4-annotation-advisor/selection-overview.png)
+| Selection overview | Raw subvolume review |
+| --- | --- |
+| ![AC3AC4 annotation selection](examples/ac3ac4-annotation-advisor/selection-overview.png) | ![AC3AC4 raw review gallery](examples/ac3ac4-annotation-advisor/raw-subvolume-gallery.png) |
 
-![AC3AC4 raw EM review gallery](examples/ac3ac4-annotation-advisor/raw-subvolume-gallery.png)
+The queue remains a human-review draft; embedding coverage alone does not prove downstream segmentation improvement. [Complete annotation-advisor record](examples/ac3ac4-annotation-advisor/README.md)
 
-See the [complete pilot record](examples/ac3ac4-annotation-advisor/README.md) for exact hashes, coordinates, configuration, and limitations. The queue remains a human-review draft; coverage alone does not prove downstream segmentation improvement.
+## Scientific guardrails
 
----
+- Use physical voxel size, not array shape alone, when selecting a model grid.
+- Run a representative pilot before expensive full-volume processing.
+- Keep prediction, postprocessing, restoration, and scientific approval separate.
+- Never call affinities, semantic masks, or suggested boxes final instance labels.
+- Keep validation/test/holdout regions outside selection and training.
+- Preserve human decisions for topology-sensitive parameters and corrections.
+- Report execution success, QC evidence, and validated accuracy as different claims.
 
-## Design Principles
-
-EM-Skills follows several principles for scientific EM analysis.
-
-### Physical scale matters
-
-Model deployment should respect real voxel size and biological scale rather than relying only on array dimensions.
-
-### Pilot before scale
-
-A representative test volume should be processed before expensive whole-volume inference.
-
-### Separate prediction from reconstruction
-
-Affinity inference and neuron-instance reconstruction are different stages and should be inspected separately.
-
-### Human review for topology-sensitive decisions
-
-Some reconstruction parameters cannot be selected reliably from a single scalar statistic.
-
-### Preserve reproducibility
-
-Important model, data, physical-resolution, and postprocessing decisions should remain traceable.
-
-### Fail closed
-
-Missing metadata, incomplete outputs, or insufficient evidence should be reported rather than silently accepted.
-
----
-
-## Intended Use
-
-EM-Skills is designed for research workflows involving:
-
-* connectomics;
-* neuronal reconstruction;
-* neuron instance segmentation;
-* organelle segmentation;
-* ultrastructural analysis;
-* large-scale Volume EM;
-* AI-assisted electron microscopy;
-* scientific EM quality control.
-
-The repository is intended to gradually expand into a broader collection of reusable EM-specific Agent Skills.
-
----
-
-## Documentation
-
-For the full technical specification of the current skill, see:
-
-* [SegNeuron Inference Skill](skills/segneuron-inference/SKILL.md)
-* [Configuration Reference](skills/segneuron-inference/references/config-schema.md)
-* [Deployment Guide](skills/segneuron-inference/references/deployment.md)
-* [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
-* [MitoNet Configuration Reference](skills/mitonet-inference/references/config-schema.md)
-* [EM Annotation Advisor Skill](skills/suggest-em-annotations/SKILL.md), [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md), and [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
-
----
-
-## Repository Philosophy
-
-EM-Skills is neither a repository of isolated inference scripts nor a set of rigid pipelines.
-
-It packages expert EM capabilities into reusable Agent Skills that combine:
+## Repository layout
 
 ```text
-Domain knowledge
-      +
-Model execution
-      +
-Physical-scale reasoning
-      +
-Human review
-      +
-Quality control
-      +
-Reproducibility
+EM-Skills/
+├── skills/
+│   ├── segneuron-inference/
+│   ├── mitonet-inference/
+│   ├── suggest-em-annotations/
+│   └── bootstrap-em-segmentation/
+├── examples/
+├── README.md
+└── README.zh-CN.md
 ```
 
-The Agent routes each request to the relevant subset. End-to-end coordination is available when the outcome requires it, while narrow tasks remain narrow.
+Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executable helpers under `scripts/` when required, task-specific documentation under `references/`, and focused cases under `evals/`.
 
----
+## Technical documentation
+
+- SegNeuron: [Skill](skills/segneuron-inference/SKILL.md) · [configuration](skills/segneuron-inference/references/config-schema.md) · [resolution and grids](skills/segneuron-inference/references/resolution-and-grids.md) · [deployment](skills/segneuron-inference/references/deployment.md)
+- MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)
+- Annotation advisor: [Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
+- Adaptive reconstruction: [Skill](skills/bootstrap-em-segmentation/SKILL.md) · [cross-Skill composition contract](skills/bootstrap-em-segmentation/references/composition-contract.md)
 
 ## License
 

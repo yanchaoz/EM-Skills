@@ -70,6 +70,12 @@ python scripts/em_annotation_advisor.py finalize --draft work/draft_selection.js
 
 Compare against random and equispaced selections under the same annotation-volume budget. Use repeated seeds and report coverage uncertainty. To claim annotation efficiency, train or fine-tune the same downstream segmentation method with matched labeling/training budgets and evaluate on an untouched held-out set. Coverage, UMAP separation, and morphology distributions are selection diagnostics—not segmentation accuracy.
 
+## Compose with coarse reconstruction
+
+When this Skill is invoked by `$bootstrap-em-segmentation`, require the same source identity, source-grid coordinates, voxel size, and frozen holdout bounds used by `$segneuron-inference`. Select boxes from raw-volume embeddings under the declared budget, then pair each approved `bbox_zyx` with its raw EM and matching coarse-instance crop for expert connectivity correction.
+
+The current selector optimizes embedding coverage; it does not automatically detect segmentation errors. Preserve accepted and rejected proposals, expert correction provenance, and corrected-label hashes. Return the approved queue to `$bootstrap-em-segmentation` for the training-data handoff and held-out comparison.
+
 ## Expected outputs
 
 - Embedding provenance: `embedding_run.json`, `project.json`, `positions_zyx.npy`, `embeddings.npy`.
