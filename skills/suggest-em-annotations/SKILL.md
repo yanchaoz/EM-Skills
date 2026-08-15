@@ -52,7 +52,7 @@ Then run:
 python scripts/em_annotation_advisor.py audit --config work/ac3ac4-0/project.json --out work/ac3ac4-0/audit.json
 python scripts/em_annotation_advisor.py plan --config work/ac3ac4-0/project.json --out work/ac3ac4-0/candidates.json
 python scripts/em_annotation_advisor.py select --config work/ac3ac4-0/project.json --manifest work/ac3ac4-0/candidates.json --embeddings work/ac3ac4-0/embeddings.npy --positions work/ac3ac4-0/positions_zyx.npy --out work/ac3ac4-0/draft_selection.json
-python scripts/visualize_annotation_advice.py --manifest work/ac3ac4-0/candidates.json --selection work/ac3ac4-0/draft_selection.json --embeddings work/ac3ac4-0/embeddings.npy --out work/ac3ac4-0/selection_overview.png
+python scripts/visualize_annotation_advice.py --manifest work/ac3ac4-0/candidates.json --selection work/ac3ac4-0/draft_selection.json --embeddings work/ac3ac4-0/embeddings.npy --umap-neighbors 25 --umap-min-dist 0.12 --umap-metric euclidean --umap-seed 7 --projection-out work/ac3ac4-0/selection_umap.npz --out work/ac3ac4-0/selection_overview.png
 python scripts/visualize_subvolume_gallery.py --raw /absolute/path/0.tif --selection work/ac3ac4-0/draft_selection.json --axes zyx --out work/ac3ac4-0/raw_subvolume_gallery.png
 python scripts/em_annotation_advisor.py finalize --draft work/ac3ac4-0/draft_selection.json --decisions work/ac3ac4-0/review_decisions.json --out work/ac3ac4-0/final_annotation_queue.json
 ```
@@ -85,7 +85,8 @@ This is a multi-scale, budgeted extension of CCR—not an assertion that variabl
 - Fail on axis ambiguity, missing voxel size, source/model permission errors, shape/order mismatch, non-finite embeddings, or checkpoint mismatch.
 - Keep validation/test/holdout regions outside both embedding selection and annotation output.
 - A generated queue remains `DRAFT_REQUIRES_HUMAN_REVIEW` until every proposal is accepted or rejected by a named reviewer.
-- Do not interpret PCA/UMAP clusters as biological classes without independent labels and expert audit.
+- Do not interpret UMAP clusters as biological classes without independent labels and expert audit.
+- Display embedding vectors with deterministic UMAP, record its neighbors, minimum distance, metric, and seed, and fail if `umap-learn` is unavailable. Do not silently substitute PCA.
 - Do not claim annotation efficiency until matched-budget random/equispaced baselines and held-out downstream segmentation evaluation are complete.
 
 ## Deliverables
@@ -96,6 +97,7 @@ This is a multi-scale, budgeted extension of CCR—not an assertion that variabl
 - `candidates.json`: deterministic multi-scale candidate geometry and per-box annotation cost.
 - `draft_selection.json`: ranked budgeted suggestions, coverage curve, size and cost of each box.
 - `selection_overview.png`: spatial boxes, embedding coverage, coverage curve, and review queue.
+- `selection_umap.npz`: displayed UMAP coordinates and reproducibility parameters.
 - `raw_subvolume_gallery.png`: center-slice raw EM previews with physical scale bars; full-z review is still required.
 - `final_annotation_queue.json`: expert-approved targets only.
 

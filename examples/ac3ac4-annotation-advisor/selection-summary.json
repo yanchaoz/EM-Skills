@@ -162,6 +162,7 @@
     "audit.json": "3ba790a06805424b5de4687bc82e9274b8b75c818b4bea1a959dce3b6d94a508",
     "candidates.json": "980886fdc0cc27b3deda714fd20b294383f5a22082cff18c52794e7a2aec2fab",
     "draft_selection.json": "833088d23cf4ee20cc99211a8d892ca4985b78e80cd3a3b5f5a44f701deb57ef",
-    "selection_overview.png": "37d599617f42c30173fb88970ff267a271b06b4b3f2716d4751bbdb86578be67"
+    "selection_overview.png": "615b4ecf2cf63dbce8bcf8b18658ad5371655ab71c89a8f66da832364e558c5c",
+    "selection_umap.npz": "7511811e9b155f5d7bb9810ed0e483448c329dce8dd9c002997f037630e68346"
   }
 }

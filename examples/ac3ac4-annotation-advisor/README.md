@@ -35,6 +35,8 @@ Candidate windows and source-voxel sizes were:
 
 The budgeted selector used `k=30`, Euclidean distance, `cost_exponent=0.75`, a 24,000,000-voxel budget, and a maximum of six non-overlapping boxes. It selected six boxes using 22,806,528 voxels and covered 49.63% of the patch set in the chosen embedding. Five boxes were `48 × 256 × 256`; one was `48 × 384 × 384`.
 
+The embedding panel uses deterministic UMAP—not PCA—with `n_neighbors=25`, `min_dist=0.12`, Euclidean metric, and `random_state=7`. The displayed coordinates and parameters are preserved in `selection-umap.npz`. UMAP is used only for visualization; coverage and selection still operate in the original 512-D embedding space.
+
 ![Selection overview](selection-overview.png)
 
 ![Raw EM review gallery](raw-subvolume-gallery.png)
@@ -48,6 +50,7 @@ The gallery shows only each box's center slice. Review the complete z extent bef
 - `audit.json`: geometry and scale audit;
 - `draft-selection.json`: full ranked proposal queue;
 - `selection-summary.json`: compact metrics and output hashes.
+- `selection-umap.npz`: displayed UMAP coordinates and deterministic projection parameters.
 
 Large source data, checkpoint files, embeddings, and the complete candidate manifest are intentionally not redistributed.
 

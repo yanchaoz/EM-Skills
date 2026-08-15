@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an SL-SSNS-style spatial and embedding-domain review figure."""
+"""Create a spatial and UMAP embedding-domain annotation review figure."""
 
 from __future__ import annotations
 
@@ -10,18 +10,45 @@ from pathlib import Path
 import numpy as np
 
 
-def pca2(x: np.ndarray) -> np.ndarray:
-    centered = x.astype(np.float64, copy=False) - np.mean(x, axis=0, keepdims=True)
-    if len(centered) < 2:
-        return np.zeros((len(centered), 2), dtype=np.float64)
-    _, _, vt = np.linalg.svd(centered, full_matrices=False)
-    projected = centered @ vt[: min(2, vt.shape[0])].T
-    if projected.shape[1] == 1:
-        projected = np.column_stack([projected[:, 0], np.zeros(len(projected))])
-    return projected
+def umap2(
+    x: np.ndarray,
+    n_neighbors: int = 25,
+    min_dist: float = 0.12,
+    metric: str = "euclidean",
+    seed: int = 7,
+) -> np.ndarray:
+    if len(x) < 3:
+        raise ValueError("UMAP visualization requires at least three embedding rows")
+    if n_neighbors < 2:
+        raise ValueError("UMAP n_neighbors must be at least 2")
+    if min_dist < 0:
+        raise ValueError("UMAP min_dist must be non-negative")
+    try:
+        import umap
+    except ImportError as exc:
+        raise RuntimeError("UMAP visualization requires the umap-learn package; no PCA fallback is used") from exc
+    effective_neighbors = min(max(2, n_neighbors), len(x) - 1)
+    reducer = umap.UMAP(
+        n_components=2,
+        n_neighbors=effective_neighbors,
+        min_dist=min_dist,
+        metric=metric,
+        random_state=seed,
+    )
+    return reducer.fit_transform(x.astype(np.float32, copy=False))
 
 
-def render(manifest_path: Path, selection_path: Path, embeddings_path: Path, out_path: Path) -> None:
+def render(
+    manifest_path: Path,
+    selection_path: Path,
+    embeddings_path: Path,
+    out_path: Path,
+    projection_out: Path | None = None,
+    n_neighbors: int = 25,
+    min_dist: float = 0.12,
+    metric: str = "euclidean",
+    seed: int = 7,
+) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -33,7 +60,18 @@ def render(manifest_path: Path, selection_path: Path, embeddings_path: Path, out
     if embeddings.ndim != 2 or embeddings.shape[0] != manifest["patch_count"]:
         raise ValueError("embedding shape does not match manifest")
 
-    points = pca2(embeddings)
+    points = umap2(embeddings, n_neighbors=n_neighbors, min_dist=min_dist, metric=metric, seed=seed)
+    if projection_out is not None:
+        projection_out.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            projection_out,
+            umap=points,
+            n_neighbors=np.asarray(n_neighbors),
+            min_dist=np.asarray(min_dist),
+            metric=np.asarray(metric),
+            seed=np.asarray(seed),
+            embedding_rows=np.asarray(embeddings.shape[0]),
+        )
     covered = np.asarray(selection["covered_patch_ids"], dtype=int)
     selected = np.asarray(selection["selected_patch_ids"], dtype=int)
     curve = selection["coverage_curve"]
@@ -62,16 +100,16 @@ def render(manifest_path: Path, selection_path: Path, embeddings_path: Path, out
     ax_space.set_ylabel("y (voxel)")
     ax_space.text(0.01, 0.01, "Boxes are projected across z; inspect every slice before acceptance.", transform=ax_space.transAxes, fontsize=8, color="#4d5660")
 
-    ax_embed.set_title("B  Embedding coverage (PCA for display only)", loc="left", fontweight="bold")
+    ax_embed.set_title("B  Embedding coverage (UMAP for display only)", loc="left", fontweight="bold")
     ax_embed.scatter(points[:, 0], points[:, 1], s=9, c="#b8c0c8", alpha=0.45, label="all patches", linewidths=0)
     if covered.size:
         ax_embed.scatter(points[covered, 0], points[covered, 1], s=13, c="#f39c36", alpha=0.55, label="covered", linewidths=0)
     if selected.size:
         ax_embed.scatter(points[selected, 0], points[selected, 1], s=27, c="#d62728", marker="*", alpha=0.9, label="selected", linewidths=0)
-    ax_embed.set_xlabel("PC1")
-    ax_embed.set_ylabel("PC2")
+    ax_embed.set_xlabel("UMAP 1")
+    ax_embed.set_ylabel("UMAP 2")
     ax_embed.legend(frameon=False, fontsize=8)
-    ax_embed.text(0.01, 0.01, "Projection is diagnostic, not a biological classifier.", transform=ax_embed.transAxes, fontsize=8, color="#4d5660")
+    ax_embed.text(0.01, 0.01, f"UMAP n={n_neighbors}, min_dist={min_dist:g}, seed={seed}; diagnostic only.", transform=ax_embed.transAxes, fontsize=8, color="#4d5660")
 
     ax_curve.set_title("C  Constrained coverage rate", loc="left", fontweight="bold")
     ranks = [r["rank"] for r in curve]
@@ -129,8 +167,23 @@ def main() -> int:
     parser.add_argument("--selection", type=Path, required=True)
     parser.add_argument("--embeddings", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--projection-out", type=Path, help="optional compressed NPZ containing UMAP coordinates and parameters")
+    parser.add_argument("--umap-neighbors", type=int, default=25)
+    parser.add_argument("--umap-min-dist", type=float, default=0.12)
+    parser.add_argument("--umap-metric", default="euclidean")
+    parser.add_argument("--umap-seed", type=int, default=7)
     args = parser.parse_args()
-    render(args.manifest, args.selection, args.embeddings, args.out)
+    render(
+        args.manifest,
+        args.selection,
+        args.embeddings,
+        args.out,
+        projection_out=args.projection_out,
+        n_neighbors=args.umap_neighbors,
+        min_dist=args.umap_min_dist,
+        metric=args.umap_metric,
+        seed=args.umap_seed,
+    )
     print(f"wrote {args.out}")
     return 0
 

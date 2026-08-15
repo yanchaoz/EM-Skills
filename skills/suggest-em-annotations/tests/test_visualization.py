@@ -18,15 +18,16 @@ class VisualizationTests(unittest.TestCase):
     def test_render(self):
         try:
             import matplotlib  # noqa: F401
+            import umap  # noqa: F401
         except ImportError:
-            self.skipTest("matplotlib unavailable")
+            self.skipTest("matplotlib or umap-learn unavailable")
         manifest = {
-            "patch_count": 4,
+            "patch_count": 16,
             "source": {"shape_zyx": [2, 8, 8]},
         }
         selection = {
             "project_id": "synthetic",
-            "covered_patch_ids": [0, 1, 2],
+            "covered_patch_ids": list(range(12)),
             "selected_patch_ids": [0, 1],
             "coverage_curve": [{"rank": 1, "coverage_rate": 0.75}],
             "selected_subvolumes": [{
@@ -43,12 +44,16 @@ class VisualizationTests(unittest.TestCase):
             sp = td / "selection.json"
             ep = td / "embedding.npy"
             op = td / "figure.png"
+            pp = td / "projection.npz"
             mp.write_text(json.dumps(manifest), encoding="utf-8")
             sp.write_text(json.dumps(selection), encoding="utf-8")
-            np.save(ep, np.eye(4, 3, dtype=np.float32))
-            visualizer.render(mp, sp, ep, op)
+            np.save(ep, np.random.default_rng(7).normal(size=(16, 3)).astype(np.float32))
+            visualizer.render(mp, sp, ep, op, projection_out=pp, n_neighbors=5, seed=7)
             self.assertTrue(op.exists())
             self.assertGreater(op.stat().st_size, 1000)
+            with np.load(pp, allow_pickle=False) as projection:
+                self.assertEqual(projection["umap"].shape, (16, 2))
+                self.assertEqual(int(projection["seed"]), 7)
 
 
 if __name__ == "__main__":
