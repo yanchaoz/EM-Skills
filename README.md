@@ -16,7 +16,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | Embedding-guided, variable-size subvolume selection | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
-| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Local-field CloudVolume overlays, density views, and 3D mesh presentation | storyboards, verified MP4, PLY mesh, Neuroglancer handoff |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Local-field overlays, density views, smooth camera tours, and 3D mesh presentation | storyboards, verified MP4, PLY mesh, Neuroglancer handoff |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
@@ -121,7 +121,9 @@ Use $cloudvolume-video on these kidney precomputed datasets. Audit physical
 alignment, then open with a bounded 1 x 1 mm context ROI and show matched
 200 x 112.5 um detail fields from cortex, corticomedullary junction, medulla,
 and renal papilla. Do not use a whole-kidney overview. Render raw EM, separate
-masks, combined overlays, and local density maps. If valid 3D mesh
+masks, combined overlays, and local density maps. Use smootherstep camera
+easing, a restrained hold push-in/pan, and a small transition zoom-out while
+keeping raw and masks locked to one transform. If valid 3D mesh
 metadata exist, export the requested segment IDs and make a verified turntable.
 ```
 
@@ -181,7 +183,7 @@ The queue remains a human-review draft; embedding coverage alone does not prove 
 
 ### CloudVolume video: kidney local fields
 
-The presentation opens with a bounded **1 x 1 mm** context ROI and then enters four **200 x 112.5 um** detail fields: cortex, corticomedullary junction, medulla, and renal papilla. It shows raw EM, four separate masks, transparent overlays, and local density maps while deliberately excluding a whole-kidney frame. Density reports predicted structure occupancy, not ground-truth accuracy.
+The presentation opens with a bounded **1 x 1 mm** context ROI and then enters four **200 x 112.5 um** detail fields: cortex, corticomedullary junction, medulla, and renal papilla. It shows raw EM, four separate masks, transparent overlays, and local density maps while deliberately excluding a whole-kidney frame. Eased push-in/pan holds keep raw and masks on one transform. Density reports predicted structure occupancy, not ground-truth accuracy.
 
 | Verified video keyframes | Regional density summary |
 | --- | --- |

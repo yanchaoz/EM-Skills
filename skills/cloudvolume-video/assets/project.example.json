@@ -11,6 +11,11 @@
     "metadata_seconds": 3, "isolated_seconds": 2.5,
     "density_seconds": 2.5, "all_seconds": 3,
     "zoom_seconds": 4, "hold_seconds": 3, "move_seconds": 3,
+    "camera": {
+      "easing": "smootherstep", "entry_start_fov_multiplier": 1.4,
+      "hold_pan_fraction": 0.035, "hold_zoom_fraction": 0.06,
+      "transition_zoom_out_fraction": 0.16
+    },
     "fade_frames": 15, "png_frames": true, "png_compression": 2,
     "codec": "mp4v", "bulk_missing_mip_max_gb": 64,
     "source_tile_max_pixels": 4096,

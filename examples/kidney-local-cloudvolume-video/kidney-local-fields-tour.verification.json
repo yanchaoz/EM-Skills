@@ -6,7 +6,7 @@
   "fps": 24.0,
   "frame_count": 992,
   "duration_seconds": 41.333333333333336,
-  "sha256": "fe7ca0abdcd2f160431f63e87e66e2ee7e982def5862aaff66a5f064d539f999",
+  "sha256": "2c137e9057f2ed393774b95163f453a9f763fc3aefa52103e77ef51e3fc28419",
   "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
   "layers": [
     "Nuclei",
@@ -15,6 +15,24 @@
     "Lysosomes"
   ],
   "density_method": "positive structure pixels / valid tissue pixels; valid raw intensity 0 < I < 250; Gaussian sigma 0.8 bins for display",
+  "camera_motion": {
+    "easing": "smoothstep",
+    "push_in_percent": 4.5,
+    "pan_fraction_of_frame": 0.012,
+    "applied_to": "raw and aligned combined-overlay composites",
+    "motion_mean_absolute_frame_differences": {
+      "context.raw": 21.12554931640625,
+      "context.overlay": 22.370315551757812,
+      "detail_cortex.raw": 22.537954330444336,
+      "detail_cortex.overlay": 27.45728874206543,
+      "detail_junction.raw": 29.222841262817383,
+      "detail_junction.overlay": 27.846139907836914,
+      "detail_medulla.raw": 25.61390495300293,
+      "detail_medulla.overlay": 27.650699615478516,
+      "detail_papilla.raw": 29.952911376953125,
+      "detail_papilla.overlay": 28.124526977539062
+    }
+  },
   "selected_keyframes": [
     "context.raw",
     "context.masks",
@@ -33,6 +51,7 @@
     "detail_papilla.overlay",
     "detail_papilla.density"
   ],
+  "motion_contact_sheet": "kidney-local-fields-tour-motion-contact-sheet.jpg",
   "checks": {
     "dimensions_1920x1080": true,
     "fps_24": true,
@@ -41,7 +60,8 @@
     "one_1x1_mm_context": true,
     "four_detail_rois": true,
     "all_story_stages_present": true,
-    "four_masks_present": true
+    "four_masks_present": true,
+    "smooth_camera_motion_present": true
   },
   "ok": true,
   "timeline": [

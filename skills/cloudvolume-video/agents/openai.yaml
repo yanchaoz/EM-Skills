@@ -1,4 +1,4 @@
 interface:
   display_name: "CloudVolume Video"
-  short_description: "Build verified local EM and 3D mesh videos"
-  default_prompt: "Use $cloudvolume-video to audit my CloudVolume data and create the requested local-view overlay, density, or mesh video with verification."
+  short_description: "Build verified EM camera tours and 3D mesh videos"
+  default_prompt: "Use $cloudvolume-video to audit my CloudVolume data and create a smooth physical-scale overlay, density, or mesh camera tour with verification."

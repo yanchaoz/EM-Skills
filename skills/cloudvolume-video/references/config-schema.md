@@ -50,6 +50,13 @@ Mesh-only projects may omit `specimens`; 2D projects may omit `mesh_render` and 
   "zoom_seconds": 4.0,
   "hold_seconds": 3.0,
   "move_seconds": 3.0,
+  "camera": {
+    "easing": "smootherstep",
+    "entry_start_fov_multiplier": 1.40,
+    "hold_pan_fraction": 0.035,
+    "hold_zoom_fraction": 0.06,
+    "transition_zoom_out_fraction": 0.16
+  },
   "fade_frames": 15,
   "png_frames": true,
   "png_compression": 2,
@@ -61,6 +68,26 @@ Mesh-only projects may omit `specimens`; 2D projects may omit `mesh_render` and 
 ```
 
 All times are seconds. Resolutions are isotropic XY nanometres per pixel. `density_bin_um` is a physical size, not a fixed pixel count. Set `include_overview: false` for a local-fields-only storyboard/video; overview assets may still be computed internally to locate and align the bounded fields, but they are not displayed. Set `bulk_missing_mip_max_gb` to `0` to force bounded tiled reading.
+
+### Camera motion
+
+`video.camera` controls a deterministic physical-coordinate trajectory:
+
+- `easing`: `linear`, `smoothstep`, `smootherstep`, or `cosine`; use
+  `smootherstep` for zero-slope starts and stops.
+- `entry_start_fov_multiplier`: initial high-resolution FOV relative to
+  `detail_fov_um` during the overview-to-detail entry zoom; must be at least 1.
+- `hold_pan_fraction`: total pan amplitude as a fraction of detail FOV. Values
+  above `0.08` are usually distracting for scientific review; maximum `0.20`.
+- `hold_zoom_fraction`: slow hold push-in, expressed as the starting excess FOV
+  over `detail_fov_um`; maximum `0.35`.
+- `transition_zoom_out_fraction`: midpoint zoom-out used to preserve context
+  while moving between stops; maximum `1.0`.
+
+The renderer interpolates center and physical FOV, crops the aligned composite
+once, and recalculates scale bars and coordinate ranges for every frame. Set the
+three fractions to `0` for fixed-FOV motion. Motion blur and independent
+raw/mask transforms are intentionally unsupported.
 
 ## Neuroglancer settings
 

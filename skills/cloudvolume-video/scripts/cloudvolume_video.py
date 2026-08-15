@@ -16,6 +16,15 @@ from pathlib import Path
 from urllib.parse import quote
 
 
+DEFAULT_CAMERA = {
+    "easing": "smootherstep",
+    "entry_start_fov_multiplier": 1.40,
+    "hold_pan_fraction": 0.035,
+    "hold_zoom_fraction": 0.06,
+    "transition_zoom_out_fraction": 0.16,
+}
+
+
 DEFAULT_VIDEO = {
     "width": 1920, "height": 1080, "fps": 30,
     "preview_resolution_nm": 640, "detail_resolution_nm": 160,
@@ -29,6 +38,7 @@ DEFAULT_VIDEO = {
     "codec": "mp4v", "bulk_missing_mip_max_gb": 64.0,
     "source_tile_max_pixels": 4096,
     "tissue": {"min_intensity": 1, "max_intensity": 249},
+    "camera": DEFAULT_CAMERA,
 }
 
 
@@ -51,6 +61,9 @@ def load_config(path: Path):
     cfg["video"]["tissue"] = {
         **DEFAULT_VIDEO["tissue"], **cfg["video"].get("tissue", {})
     }
+    cfg["video"]["camera"] = {
+        **DEFAULT_CAMERA, **cfg["video"].get("camera", {})
+    }
     required = ["project_name", "source_root", "output_root", "specimens"]
     missing = [k for k in required if k not in cfg]
     if missing:
@@ -60,6 +73,23 @@ def load_config(path: Path):
     ids = [x["id"] for x in cfg["specimens"]]
     if len(ids) != len(set(ids)):
         raise ValueError("Specimen ids must be unique")
+    video = cfg["video"]
+    for key in ("metadata_seconds", "isolated_seconds", "density_seconds", "all_seconds",
+                "zoom_seconds", "hold_seconds", "move_seconds"):
+        if float(video[key]) < 0:
+            raise ValueError(f"video.{key} must be non-negative")
+    if int(video["fps"]) <= 0 or int(video["width"]) <= 0 or int(video["height"]) <= 0:
+        raise ValueError("video width, height, and fps must be positive")
+    camera = video["camera"]
+    if camera["easing"] not in {"linear", "smoothstep", "smootherstep", "cosine"}:
+        raise ValueError("video.camera.easing must be linear, smoothstep, smootherstep, or cosine")
+    if float(camera["entry_start_fov_multiplier"]) < 1.0:
+        raise ValueError("video.camera.entry_start_fov_multiplier must be >= 1")
+    for key, upper in (("hold_pan_fraction", 0.20), ("hold_zoom_fraction", 0.35),
+                       ("transition_zoom_out_fraction", 1.0)):
+        value = float(camera[key])
+        if not 0.0 <= value <= upper:
+            raise ValueError(f"video.camera.{key} must be in [0, {upper}]")
     for specimen in cfg["specimens"]:
         if not specimen.get("layers"):
             raise ValueError(f"{specimen['id']} has no layers")
@@ -80,6 +110,81 @@ def smoothstep(x):
 def ease(x):
     x = max(0.0, min(1.0, float(x)))
     return 0.5 - 0.5 * math.cos(math.pi * x)
+
+
+def easing_value(name, x):
+    """Return a clamped deterministic interpolation weight."""
+    x = max(0.0, min(1.0, float(x)))
+    if name == "linear":
+        return x
+    if name == "smoothstep":
+        return x * x * (3.0 - 2.0 * x)
+    if name == "smootherstep":
+        return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
+    if name == "cosine":
+        return 0.5 - 0.5 * math.cos(math.pi * x)
+    raise ValueError(f"Unknown camera easing: {name}")
+
+
+def _hold_pose(stops, index, progress, base_fov_nm, camera):
+    """Create a continuous slow push-in plus restrained pan for one hold."""
+    u = easing_value(camera["easing"], progress)
+    directions = ((1.0, -0.36), (-0.72, 0.62), (0.45, 0.82), (-1.0, -0.28))
+    dx, dy = directions[index % len(directions)]
+    norm = math.hypot(dx, dy)
+    amplitude = float(camera["hold_pan_fraction"]) * base_fov_nm / 2.0
+    offset = (amplitude * dx / norm, amplitude * dy / norm)
+    center = (stops[index][0] + (2.0 * u - 1.0) * offset[0],
+              stops[index][1] + (2.0 * u - 1.0) * offset[1])
+    fov = base_fov_nm * (1.0 + float(camera["hold_zoom_fraction"]) * (1.0 - u))
+    return center, fov
+
+
+def camera_pose(t, stops, base_fov_nm, zoom_seconds, hold_seconds, move_seconds,
+                include_overview, camera):
+    """Return center, physical FOV, stop index, and phase for a camera time."""
+    if not stops:
+        raise ValueError("Camera tour requires at least one stop")
+    t = max(0.0, float(t))
+    zoom = float(zoom_seconds) if include_overview else 0.0
+    hold, move = float(hold_seconds), float(move_seconds)
+    first_center, first_fov = _hold_pose(stops, 0, 0.0, base_fov_nm, camera)
+    if zoom > 0.0 and t < zoom:
+        u = easing_value(camera["easing"], t / zoom)
+        start_fov = base_fov_nm * float(camera["entry_start_fov_multiplier"])
+        return {
+            "center": first_center,
+            "fov_nm": start_fov * (1.0 - u) + first_fov * u,
+            "stop_index": None,
+            "phase": "entry_zoom",
+            "progress": u,
+        }
+
+    tt = t - zoom
+    cursor = 0.0
+    for index in range(len(stops)):
+        if hold > 0.0 and tt < cursor + hold:
+            u = (tt - cursor) / hold
+            center, fov = _hold_pose(stops, index, u, base_fov_nm, camera)
+            return {"center": center, "fov_nm": fov, "stop_index": index,
+                    "phase": "hold", "progress": easing_value(camera["easing"], u)}
+        cursor += hold
+        if index >= len(stops) - 1:
+            break
+        if move > 0.0 and tt < cursor + move:
+            u = easing_value(camera["easing"], (tt - cursor) / move)
+            start_center, start_fov = _hold_pose(stops, index, 1.0, base_fov_nm, camera)
+            end_center, end_fov = _hold_pose(stops, index + 1, 0.0, base_fov_nm, camera)
+            center = tuple(start_center[j] * (1.0 - u) + end_center[j] * u for j in range(2))
+            base_fov = start_fov * (1.0 - u) + end_fov * u
+            zoom_out = 4.0 * u * (1.0 - u) * float(camera["transition_zoom_out_fraction"])
+            return {"center": center, "fov_nm": base_fov * (1.0 + zoom_out),
+                    "stop_index": None, "phase": "move", "progress": u}
+        cursor += move
+
+    center, fov = _hold_pose(stops, len(stops) - 1, 1.0, base_fov_nm, camera)
+    return {"center": center, "fov_nm": fov, "stop_index": len(stops) - 1,
+            "phase": "hold", "progress": 1.0}
 
 
 class Pipeline:
@@ -370,7 +475,14 @@ class Pipeline:
 
     def load_detail(self, specimen, stops, meta):
         res = int(self.v["detail_resolution_nm"]); fov = float(self.v["detail_fov_um"]) * 1000
-        fh = fov * self.H / self.W; margin = max(fov * .9, 180000.0)
+        camera = self.v["camera"]
+        max_fov_multiplier = max(
+            float(camera["entry_start_fov_multiplier"]),
+            (1.0 + float(camera["hold_zoom_fraction"])) *
+            (1.0 + float(camera["transition_zoom_out_fraction"])),
+        )
+        fh = fov * self.H / self.W
+        margin = max(fov * (0.55 * max_fov_multiplier + float(camera["hold_pan_fraction"])), 180000.0)
         xs = [p[0] for p in stops]; ys = [p[1] for p in stops]
         x0 = max(0, math.floor((min(xs) - fov / 2 - margin) / res)); x1 = math.ceil((max(xs) + fov / 2 + margin) / res)
         y0 = max(0, math.floor((min(ys) - fh / 2 - margin) / res)); y1 = math.ceil((max(ys) + fh / 2 + margin) / res)
@@ -396,8 +508,9 @@ class Pipeline:
             crop[ay0 - y0:ay1 - y0, ax0 - x0:ax1 - x0] = image[ay0:ay1, ax0:ax1]
         return self.cv2.resize(crop, (self.W, self.H), interpolation=self.cv2.INTER_LINEAR)
 
-    def stop_info(self, frame, index, center):
-        fov = float(self.v["detail_fov_um"]) * 1000; fh = fov * self.H / self.W; cx, cy = center
+    def stop_info(self, frame, index, center, fov_nm=None):
+        fov = float(fov_nm if fov_nm is not None else float(self.v["detail_fov_um"]) * 1000)
+        fh = fov * self.H / self.W; cx, cy = center
         self.panel(frame, (42, 830, 970, 1030), .76)
         self.outlined(frame, f"Representative field {index + 1}", (72, 878), .90)
         self.outlined(frame, f"X: {(cx - fov / 2) / 1000:.1f}-{(cx + fov / 2) / 1000:.1f} um", (72, 932), .68)
@@ -427,7 +540,7 @@ class Pipeline:
             "project_name": self.cfg["project_name"], "specimen": specimen,
             "preview_meta": meta, "density": density_meta,
             "stops_nm_relative_to_raw_origin": stops, "detail_origin_nm_relative": detail_origin,
-            "config": str(self.config_path),
+            "camera_motion": self.v["camera"], "config": str(self.config_path),
         }
         (out / "asset_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         shutil.copy2(self.config_path, out / "project_config.json")
@@ -469,28 +582,21 @@ class Pipeline:
         print(f"DONE_STORYBOARD {specimen['id']} {out / 'storyboard.jpg'}", flush=True)
 
     def camera_frame(self, t, all_frame, stops, detail, origin):
-        fov = float(self.v["detail_fov_um"]) * 1000
-        zoom = float(self.v["zoom_seconds"]) if bool(self.v.get("include_overview", True)) else 0.0
-        hold, move = map(float, (self.v["hold_seconds"], self.v["move_seconds"]))
-        idx = None
-        if t < zoom:
-            target = self.crop_detail(detail, *stops[0], fov, origin)
-            a = smoothstep(t / zoom); f = self.cv2.addWeighted(all_frame, 1 - a, target, a, 0)
+        base_fov = float(self.v["detail_fov_um"]) * 1000
+        include_overview = bool(self.v.get("include_overview", True))
+        pose = camera_pose(
+            t, stops, base_fov, self.v["zoom_seconds"], self.v["hold_seconds"],
+            self.v["move_seconds"], include_overview, self.v["camera"],
+        )
+        center, fov = pose["center"], pose["fov_nm"]
+        target = self.crop_detail(detail, *center, fov, origin)
+        if pose["phase"] == "entry_zoom" and include_overview:
+            f = self.cv2.addWeighted(all_frame, 1.0 - pose["progress"], target, pose["progress"], 0)
         else:
-            tt = t - zoom; center = stops[-1]; idx = len(stops) - 1; cursor = 0.0
-            for i in range(len(stops)):
-                if tt < cursor + hold:
-                    center, idx = stops[i], i; break
-                cursor += hold
-                if i < len(stops) - 1:
-                    if tt < cursor + move:
-                        u = ease((tt - cursor) / move)
-                        center = tuple(stops[i][j] * (1 - u) + stops[i + 1][j] * u for j in range(2)); idx = None; break
-                    cursor += move
-            f = self.crop_detail(detail, *center, fov, origin)
+            f = target
         self.draw_scale(f, float(self.v["detail_scale_bar_um"]), fov_nm=fov)
-        if idx is not None:
-            self.stop_info(f, idx, stops[idx])
+        if pose["stop_index"] is not None:
+            self.stop_info(f, pose["stop_index"], center, fov)
         return f
 
     def render(self, specimen, reuse_assets=False, force=False):

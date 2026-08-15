@@ -13,7 +13,7 @@ Treat this Skill as a set of presentation and verification capabilities. Route t
 | --- | --- | --- |
 | Inspect datasets, scales, bounds, alignment, or mesh availability | `audit` or `mesh audit` | `cloudvolume_video.py`, `cloudvolume_mesh.py` |
 | Plan a local-field story before rendering | `storyboard` | `cloudvolume_video.py` |
-| Render raw/segmentation overlays, density maps, and a local camera tour | `render` | `cloudvolume_video.py` |
+| Render raw/segmentation overlays, density maps, and a smooth local camera tour | `render` | `cloudvolume_video.py` |
 | Retrieve an existing mesh or extract one from a bounded 3D label ROI | `mesh export` | `cloudvolume_mesh.py` |
 | Preview a mesh from four angles or make a headless turntable | `mesh storyboard` or `mesh render` | `cloudvolume_mesh.py` |
 | Check video decoding, frame metadata, contact sheets, and hashes | `verify` | the corresponding script |
@@ -67,6 +67,15 @@ A useful local sequence is:
 ```text
 region identity → raw EM → one structure overlay → density or occupancy → all overlays → local detail stops
 ```
+
+Use the `video.camera` block for restrained scientific camera motion. Prefer
+`smootherstep` easing, a slow push-in with slight pan during holds, and a small
+zoom-out while moving between distant stops. Keep the physical FOV within the
+configured bounds and update scale bars and coordinate captions from every
+rendered pose. Apply one transform to the already aligned raw-plus-label
+composite; never animate raw and masks independently. Review entry, midpoint,
+and exit poses in the storyboard or motion-contact sheet. Do not add motion
+blur, fake parallax, or depth effects that can hide boundaries.
 
 For mesh, use a neutral background, stable lighting, the same camera elevation across comparisons, and a full orbit only when 3D shape is the subject.
 

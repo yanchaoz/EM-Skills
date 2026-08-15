@@ -1,6 +1,6 @@
 {
   "skill": "cloudvolume-video",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "cases": [
     {
       "id": "local-fields-only",
@@ -26,6 +26,11 @@
       "id": "verify-only",
       "prompt": "The MP4 and render manifest already exist. Verify them without rerendering.",
       "expected": ["runs verification only", "decodes distributed samples", "reports dimensions fps frame count and hashes"]
+    },
+    {
+      "id": "smooth-camera-tour",
+      "prompt": "Make the local-field tour feel smoother: use a slow zoom and small pan during each hold, and preserve context while moving between fields.",
+      "expected": ["configures video.camera instead of hard-coding motion", "uses eased physical-coordinate poses", "keeps raw masks scale bars and captions aligned", "rejects motion blur or fake parallax"]
     }
   ]
 }

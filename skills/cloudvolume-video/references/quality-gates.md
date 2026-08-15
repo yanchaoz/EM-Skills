@@ -23,6 +23,10 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] Four representative fields are tissue-rich and ordered along the intended path.
 - [ ] Fine labels align with EM structures in every representative field.
 - [ ] Coordinates and scale bars are readable at final 1920x1080 size.
+- [ ] Camera entry, hold, and move keyframes stay within bounded source data.
+- [ ] Pan/zoom uses one transform for the aligned raw-plus-label composite.
+- [ ] Dynamic scale bars and coordinate captions match the instantaneous FOV.
+- [ ] Easing has no visible start/stop jumps; transition zoom-out remains restrained.
 - [ ] Source missing tiles are distinguished from rendering artifacts.
 - [ ] Black background and hidden axis lines are correct.
 - [ ] Mesh previews use stable camera/light settings and show non-zero extent on all three axes.
@@ -45,6 +49,7 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] Frame count matches the timeline calculation.
 - [ ] PNG count equals MP4 frame count when PNG export is enabled.
 - [ ] Samples from opening, overlays, densities, combined view, transitions, and holds decode.
+- [ ] Camera entry, hold midpoint, move midpoint, and final hold samples decode without blank borders or alignment drift.
 - [ ] Verification contact sheet has no unexpected blank/black frames.
 - [ ] SHA-256 is written for every MP4.
 - [ ] Mesh vertices are finite, face indices are valid, and exported mesh/video hashes are recorded.

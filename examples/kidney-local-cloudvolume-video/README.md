@@ -16,11 +16,21 @@ Each ROI follows the same auditable sequence:
 3. a combined transparent overlay on the raw EM;
 4. local structure-density maps.
 
+Raw and combined-overlay holds use the same eased 4.5% push-in and subtle pan.
+The transform is applied once to the aligned composite, so masks cannot drift
+relative to the EM. Titles and side panels remain locked; the physical scale
+bar is recalculated for the instantaneous camera FOV.
+
 The 1 x 1 mm context is sampled at 160 nm/px. The cortex,
 corticomedullary-junction, medulla, and renal-papilla detail fields are sampled
 at 80 nm/px. Scale bars and physical bounds are taken from the export manifest.
 
 ![Video verification contact sheet](kidney-local-fields-tour-contact-sheet.jpg)
+
+The motion QA sheet samples the start, midpoint, and end of context/cortex raw
+and overlay holds:
+
+![Camera motion verification](kidney-local-fields-tour-motion-contact-sheet.jpg)
 
 ## Density contract
 
@@ -57,7 +67,8 @@ keyframe samples, and a machine-readable verification report.
 - video: `1920 x 1080`, 24 fps, 992 frames, 41.33 seconds;
 - scope: one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs;
 - layers: nuclei, mitochondria, basement membrane, lysosomes;
-- SHA-256: `fe7ca0abdcd2f160431f63e87e66e2ee7e982def5862aaff66a5f064d539f999`;
+- camera: smoothstep easing, 4.5% push-in, 1.2% pan, locked raw-mask transform;
+- SHA-256: `2c137e9057f2ed393774b95163f453a9f763fc3aefa52103e77ef51e3fc28419`;
 - all 16 selected raw/mask/overlay/density keyframes decoded successfully.
 
 See [`kidney-local-fields-tour.verification.json`](kidney-local-fields-tour.verification.json)

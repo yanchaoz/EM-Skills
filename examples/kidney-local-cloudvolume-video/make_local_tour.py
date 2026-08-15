@@ -39,6 +39,7 @@ class State:
     title: str
     frame: np.ndarray
     hold_seconds: float
+    render_fn: object | None = None
 
 
 def smoothstep(value: float) -> float:
@@ -70,6 +71,30 @@ def fit_image(image, width, height, background=BG):
     x, y = (width - nw) // 2, (height - nh) // 2
     canvas[y:y + nh, x:x + nw] = resized
     return canvas, (x, y, nw, nh)
+
+
+def cinematic_fit(image, width, height, progress, direction=1, background=BG):
+    """Apply a subtle eased push-in and pan inside a fixed presentation box."""
+    ih, iw = image.shape[:2]
+    eased = smoothstep(progress)
+    zoom = 1.0 + 0.045 * eased
+    scale = min(width / iw, height / ih) * zoom
+    nw, nh = max(1, round(iw * scale)), max(1, round(ih * scale))
+    resized = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_CUBIC)
+    pan_x = round(direction * (2.0 * eased - 1.0) * min(width, nw) * 0.012)
+    pan_y = round((2.0 * eased - 1.0) * min(height, nh) * 0.006)
+    x, y = (width - nw) // 2 + pan_x, (height - nh) // 2 + pan_y
+    canvas = np.full((height, width, 3), background, np.uint8)
+    dx0, dy0 = max(0, x), max(0, y)
+    dx1, dy1 = min(width, x + nw), min(height, y + nh)
+    if dx1 > dx0 and dy1 > dy0:
+        sx0, sy0 = dx0 - x, dy0 - y
+        canvas[dy0:dy1, dx0:dx1] = resized[sy0:sy0 + dy1 - dy0, sx0:sx0 + dx1 - dx0]
+    return canvas, (x, y, nw, nh), zoom
+
+
+def state_frame(state, progress):
+    return state.render_fn(progress) if state.render_fn is not None else state.frame
 
 
 def header(frame, eyebrow, title, subtitle=None):
@@ -110,28 +135,35 @@ def draw_scale_bar(frame, image_box, fov_um_x, bar_um):
 
 
 def raw_state(prefix, raw, record, scope_label):
-    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
-    image, box = fit_image(gray_bgr(raw), 1370, 870)
-    frame[156:1026, :1370] = image
-    translucent_rect(frame, (1400, 174), (1880, 954), alpha=0.95)
-    put(frame, "FIELD OF VIEW", (1440, 230), 0.50, ACCENT, 2)
-    fw, fh = record["fov_um_xy"]
-    put(frame, f"{fw:g} x {fh:g} um", (1440, 282), 0.87, TEXT, 2)
-    put(frame, "SAMPLING", (1440, 365), 0.50, ACCENT, 2)
-    rx, ry = record["resolution_nm_xy"]
-    put(frame, f"{rx:g} x {ry:g} nm/px", (1440, 417), 0.78, TEXT, 2)
-    put(frame, "PHYSICAL BOUNDS", (1440, 500), 0.50, ACCENT, 2)
-    x0, x1, y0, y1 = record["bounds_um_xyxy"]
-    put(frame, f"x  {x0/1000:.3f}-{x1/1000:.3f} mm", (1440, 553), 0.66, TEXT, 2)
-    put(frame, f"y  {y0/1000:.3f}-{y1/1000:.3f} mm", (1440, 595), 0.66, TEXT, 2)
-    put(frame, "DISPLAY", (1440, 678), 0.50, ACCENT, 2)
-    put(frame, "Raw electron microscopy", (1440, 730), 0.63, TEXT, 2)
-    put(frame, "No whole-organ frame", (1440, 775), 0.63, MUTED, 2)
-    local_box = (box[0], 156 + box[1], box[2], box[3])
-    draw_scale_bar(frame, local_box, fw, 200 if fw >= 1000 else 20)
-    header(frame, scope_label, record["label"], "Raw EM")
-    footer(frame)
-    return State(f"{prefix}.raw", f"{record['label']} - raw", frame, 1.65)
+    source = gray_bgr(raw)
+    direction = 1 if sum(map(ord, prefix)) % 2 else -1
+
+    def make_frame(progress):
+        frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
+        image, box, zoom = cinematic_fit(source, 1370, 870, progress, direction)
+        frame[156:1026, :1370] = image
+        translucent_rect(frame, (1400, 174), (1880, 954), alpha=0.95)
+        put(frame, "FIELD OF VIEW", (1440, 230), 0.50, ACCENT, 2)
+        fw, fh = record["fov_um_xy"]
+        put(frame, f"{fw:g} x {fh:g} um", (1440, 282), 0.87, TEXT, 2)
+        put(frame, "SAMPLING", (1440, 365), 0.50, ACCENT, 2)
+        rx, ry = record["resolution_nm_xy"]
+        put(frame, f"{rx:g} x {ry:g} nm/px", (1440, 417), 0.78, TEXT, 2)
+        put(frame, "PHYSICAL BOUNDS", (1440, 500), 0.50, ACCENT, 2)
+        x0, x1, y0, y1 = record["bounds_um_xyxy"]
+        put(frame, f"x  {x0/1000:.3f}-{x1/1000:.3f} mm", (1440, 553), 0.66, TEXT, 2)
+        put(frame, f"y  {y0/1000:.3f}-{y1/1000:.3f} mm", (1440, 595), 0.66, TEXT, 2)
+        put(frame, "CAMERA", (1440, 678), 0.50, ACCENT, 2)
+        put(frame, "Eased push-in + subtle pan", (1440, 730), 0.57, TEXT, 1)
+        put(frame, "No whole-organ frame", (1440, 775), 0.63, MUTED, 2)
+        local_box = (box[0], 156 + box[1], box[2], box[3])
+        draw_scale_bar(frame, local_box, fw / zoom, 200 if fw >= 1000 else 20)
+        header(frame, scope_label, record["label"], "Raw EM | smooth camera hold")
+        footer(frame)
+        return frame
+
+    frame = make_frame(0.5)
+    return State(f"{prefix}.raw", f"{record['label']} - raw", frame, 1.65, make_frame)
 
 
 def mask_panel(raw, mask, record, key, label, bounds):
@@ -175,20 +207,27 @@ def legend_card(frame, record, x0=1420, y0=210):
 
 
 def overlay_state(prefix, raw, masks, record, scope_label):
-    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
-    image, box = fit_image(overlay(raw, masks, record), 1370, 870)
-    frame[156:1026, :1370] = image
-    translucent_rect(frame, (1400, 174), (1884, 954), alpha=0.95)
-    legend_card(frame, record)
-    put(frame, "INTERPRETATION", (1420, 708), 0.50, ACCENT, 2)
-    put(frame, "Raw structure remains visible", (1420, 758), 0.54, TEXT, 1)
-    put(frame, "beneath transparent masks.", (1420, 796), 0.54, TEXT, 1)
-    fw = record["fov_um_xy"][0]
-    local_box = (box[0], 156 + box[1], box[2], box[3])
-    draw_scale_bar(frame, local_box, fw, 200 if fw >= 1000 else 20)
-    header(frame, scope_label, record["label"], "Combined segmentation overlay")
-    footer(frame)
-    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, 1.80)
+    source = overlay(raw, masks, record)
+    direction = -1 if sum(map(ord, prefix)) % 2 else 1
+
+    def make_frame(progress):
+        frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
+        image, box, zoom = cinematic_fit(source, 1370, 870, progress, direction)
+        frame[156:1026, :1370] = image
+        translucent_rect(frame, (1400, 174), (1884, 954), alpha=0.95)
+        legend_card(frame, record)
+        put(frame, "INTERPRETATION", (1420, 708), 0.50, ACCENT, 2)
+        put(frame, "One transform preserves", (1420, 758), 0.54, TEXT, 1)
+        put(frame, "raw-mask alignment.", (1420, 796), 0.54, TEXT, 1)
+        fw = record["fov_um_xy"][0]
+        local_box = (box[0], 156 + box[1], box[2], box[3])
+        draw_scale_bar(frame, local_box, fw / zoom, 200 if fw >= 1000 else 20)
+        header(frame, scope_label, record["label"], "Combined overlay | locked camera transform")
+        footer(frame)
+        return frame
+
+    frame = make_frame(0.5)
+    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, 1.80, make_frame)
 
 
 def density_visual(raw, density, vmax):
@@ -282,7 +321,7 @@ def write_storyboard(states, output):
     rows = int(np.ceil(len(states) / columns))
     sheet = np.full((rows * thumb_h, columns * thumb_w, 3), BG, np.uint8)
     for index, state in enumerate(states):
-        thumb = cv2.resize(state.frame, (thumb_w, thumb_h), interpolation=cv2.INTER_AREA)
+        thumb = cv2.resize(state_frame(state, 0.5), (thumb_w, thumb_h), interpolation=cv2.INTER_AREA)
         row, col = divmod(index, columns)
         sheet[row * thumb_h:(row + 1) * thumb_h, col * thumb_w:(col + 1) * thumb_w] = thumb
     cv2.imwrite(str(output), sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
@@ -305,13 +344,17 @@ def render(states, output):
         frame_count += 1
 
     transition_frames = round(0.32 * FPS)
+    previous_final = None
     for index, state in enumerate(states):
         if index:
+            current_start = state_frame(state, 0.0)
             for step in range(transition_frames):
-                emit(crossfade(states[index - 1].frame, state.frame, (step + 1) / transition_frames))
+                emit(crossfade(previous_final, current_start, (step + 1) / transition_frames))
         first = frame_count
-        for _ in range(round(state.hold_seconds * FPS)):
-            emit(state.frame)
+        hold_frames = round(state.hold_seconds * FPS)
+        for step in range(hold_frames):
+            emit(state_frame(state, step / max(1, hold_frames - 1)))
+        previous_final = state_frame(state, 1.0)
         timeline.append({"key": state.key, "title": state.title, "first_frame": first,
                          "last_frame": frame_count - 1, "mid_frame": (first + frame_count - 1) // 2})
     writer.close()
@@ -335,7 +378,34 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         ok, frame = cap.read()
         decoded.append(bool(ok))
         thumbs.append(cv2.resize(frame, (480, 270)) if ok else np.zeros((270, 480, 3), np.uint8))
+    motion_differences = {}
+    motion_rows = []
+    motion_sheet_keys = {"context.raw", "context.overlay", "detail_cortex.raw", "detail_cortex.overlay"}
+    for item in timeline:
+        if not item["key"].endswith((".raw", ".overlay")):
+            continue
+        cap.set(cv2.CAP_PROP_POS_FRAMES, item["first_frame"])
+        ok0, first = cap.read()
+        cap.set(cv2.CAP_PROP_POS_FRAMES, item["last_frame"])
+        ok1, last = cap.read()
+        motion_differences[item["key"]] = (
+            float(np.mean(np.abs(first.astype(np.float32) - last.astype(np.float32))))
+            if ok0 and ok1 else 0.0
+        )
+        if item["key"] in motion_sheet_keys and ok0 and ok1:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, item["mid_frame"])
+            okm, middle = cap.read()
+            if okm:
+                motion_rows.append((first, middle, last))
     cap.release()
+    motion_sheet = np.full((len(motion_rows) * 360, 1920, 3), BG, np.uint8)
+    for row, frames in enumerate(motion_rows):
+        for col, frame in enumerate(frames):
+            motion_sheet[row * 360:(row + 1) * 360, col * 640:(col + 1) * 640] = cv2.resize(
+                frame, (640, 360), interpolation=cv2.INTER_AREA
+            )
+    motion_contact = output_dir / "kidney-local-fields-tour-motion-contact-sheet.jpg"
+    cv2.imwrite(str(motion_contact), motion_sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
     sheet = np.full((1080, 1920, 3), BG, np.uint8)
     for index, thumb in enumerate(thumbs):
         row, col = divmod(index, 4)
@@ -355,6 +425,8 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         "all_story_stages_present": all(any(key.endswith(suffix) for key in timeline_keys)
                                           for suffix in required_suffixes),
         "four_masks_present": all(key in manifest["context"]["layers"] for key, _ in LAYERS),
+        "smooth_camera_motion_present": bool(motion_differences) and
+                                          all(value > 0.5 for value in motion_differences.values()),
     }
     report = {
         "video": Path(video).name,
@@ -368,7 +440,14 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
         "layers": [label for _, label in LAYERS],
         "density_method": manifest["density_method"],
+        "camera_motion": {
+            "easing": "smoothstep", "push_in_percent": 4.5,
+            "pan_fraction_of_frame": 0.012,
+            "applied_to": "raw and aligned combined-overlay composites",
+            "motion_mean_absolute_frame_differences": motion_differences,
+        },
         "selected_keyframes": [item["key"] for item in selected],
+        "motion_contact_sheet": motion_contact.name,
         "checks": checks,
         "ok": opened and all(checks.values()),
         "timeline": timeline,

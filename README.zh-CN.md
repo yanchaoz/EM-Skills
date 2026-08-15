@@ -16,7 +16,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada 线粒体分割 | semantic mask、三维 instance、profile 对比、QC 图 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 embedding 的可变尺寸子体块选择 | 标注队列、UMAP/空间审核、获批清单 |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | 新 EM 数据上的跨 Skill 模型适配 | 粗分割、选择性修正、训练交接、配对评估 |
-| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | CloudVolume 局部视野、密度图与三维 mesh 展示 | storyboard、验证后 MP4、PLY mesh、Neuroglancer 交接 |
+| [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | CloudVolume 局部 overlay、密度图、平滑镜头与三维 mesh 展示 | storyboard、验证后 MP4、PLY mesh、Neuroglancer 交接 |
 
 输入可包括 TIFF、NumPy、Zarr、N5、CloudVolume/precomputed，以及 FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等连续切片或体电镜数据。
 
@@ -119,7 +119,9 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 请对这些肾脏 precomputed 数据使用 $cloudvolume-video。先审计物理对齐，
 先用有界的 1 x 1 mm 背景 ROI 建立空间尺度，再展示皮质、皮髓交界、
 髓质和肾乳头的 200 x 112.5 um 匹配细节视野，不要使用全肾概览。
-依次渲染 raw EM、独立 masks、组合 overlay 和局部密度图。如果存在有效的三维 mesh
+依次渲染 raw EM、独立 masks、组合 overlay 和局部密度图。使用 smootherstep
+缓动、克制的 hold 推近/平移和转场拉远，并让 raw 与 mask 始终共用一个变换。
+如果存在有效的三维 mesh
 元数据，导出指定 segment IDs，并生成经过验证的 turntable 视频。
 ```
 
@@ -179,7 +181,7 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 
 ### CloudVolume 视频：肾脏局部视野
 
-展示先以有界的 **1 x 1 mm** 背景 ROI 建立空间尺度，再进入皮质、皮髓交界、髓质和肾乳头四个 **200 x 112.5 um** 细节视野。视频依次展示 raw EM、四类独立 mask、透明 overlay 和局部密度图，且不出现全肾画面。密度表示预测结构在有效组织像素中的占比，不能替代 ground-truth 准确率评估。
+展示先以有界的 **1 x 1 mm** 背景 ROI 建立空间尺度，再进入皮质、皮髓交界、髓质和肾乳头四个 **200 x 112.5 um** 细节视野。视频依次展示 raw EM、四类独立 mask、透明 overlay 和局部密度图，且不出现全肾画面。平滑推近/平移时 raw 与 mask 始终共用一个变换。密度表示预测结构在有效组织像素中的占比，不能替代 ground-truth 准确率评估。
 
 | 视频关键帧验证 | 局部区域密度汇总 |
 | --- | --- |

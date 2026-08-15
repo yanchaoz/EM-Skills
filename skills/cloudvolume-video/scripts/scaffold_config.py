@@ -18,6 +18,11 @@ TEMPLATE = {
         "metadata_seconds": 3.0, "isolated_seconds": 2.5,
         "density_seconds": 2.5, "all_seconds": 3.0,
         "zoom_seconds": 4.0, "hold_seconds": 3.0, "move_seconds": 3.0,
+        "camera": {
+            "easing": "smootherstep", "entry_start_fov_multiplier": 1.40,
+            "hold_pan_fraction": 0.035, "hold_zoom_fraction": 0.06,
+            "transition_zoom_out_fraction": 0.16
+        },
         "fade_frames": 15, "png_frames": True, "png_compression": 2,
         "codec": "mp4v", "bulk_missing_mip_max_gb": 64.0,
         "source_tile_max_pixels": 4096,
