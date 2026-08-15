@@ -127,7 +127,7 @@ Full field contracts and commands live in each Skill's `references/` and `script
 
 These examples demonstrate execution and QC; they are not interchangeable with ground-truth benchmarks.
 
-### SegNeuron: `syn178/raw[:18, :256, :256]`
+### SegNeuron: 
 
 - recorded source/model grids: `50 × 4 × 4 nm → 50 × 8 × 8 nm`;
 - three-channel affinity prediction;
@@ -140,7 +140,7 @@ These examples demonstrate execution and QC; they are not interchangeable with g
 
 [SegNeuron pilot record](examples/syn178-pilot/README.md)
 
-### MitoNet: `syn178/raw[:18, :256, :256]`
+### MitoNet: 
 
 The 8 nm and 16 nm MitoNet-mini profiles found the same mitochondrial candidate with binary-mask Dice `0.8710`. This is a profile/QC comparison without mitochondrial ground truth.
 
@@ -150,7 +150,7 @@ The 8 nm and 16 nm MitoNet-mini profiles found the same mitochondrial candidate 
 
 [MitoNet pilot record](examples/syn178-mitonet-pilot/README.md)
 
-### Annotation advisor: AC3/AC4 `0.tif`
+### Annotation advisor:
 
 - input: `256 × 1024 × 1024`, `uint8`, zyx;
 - embeddings: `3375 × 512` from the EMFoundation BASE encoder;
