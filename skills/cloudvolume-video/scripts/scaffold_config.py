@@ -29,7 +29,7 @@ TEMPLATE = {
         "density_seconds": 2.5, "all_seconds": 3.0,
         "zoom_seconds": 4.0, "hold_seconds": 3.0, "move_seconds": 3.0,
         "camera": {
-            "easing": "smootherstep", "entry_start_fov_multiplier": 1.40,
+            "easing": "smootherstep", "entry_start_fov_multiplier": 5.0,
             "hold_pan_fraction": 0.035, "hold_zoom_fraction": 0.06,
             "transition_zoom_out_fraction": 0.16
         },
@@ -59,6 +59,13 @@ TEMPLATE = {
     }],
     "specimens": [{
         "id": "example", "label": "Example specimen", "raw": "EM-WSI-Example",
+        "story": {
+            "context_roi_um_xyxy": [0, 1000, 0, 1000],
+            "local_stops": {
+                "mode": "seeded_random", "seed": 20260815, "count": 4,
+                "min_tissue_fraction": 0.70, "min_center_distance_um": 220
+            }
+        },
         "layers": [
             {"id": "mitochondria", "label": "Mitochondria",
              "dataset": "EM-WSI-Example-Mito", "label_value": None,

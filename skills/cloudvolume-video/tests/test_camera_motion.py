@@ -5,6 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import cv2
+import numpy as np
+
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "cloudvolume_video.py"
 SPEC = importlib.util.spec_from_file_location("cloudvolume_video", SCRIPT)
@@ -55,6 +58,20 @@ class CameraMotionTest(unittest.TestCase):
         self.assertLess(abs(entry_end["fov_nm"] - hold_start["fov_nm"]), 0.1)
         self.assertLess(abs(entry_end["center"][0] - hold_start["center"][0]), 0.1)
 
+    def test_entry_moves_from_context_center_to_first_random_stop(self):
+        context = (900_000.0, 800_000.0)
+        start = MOD.camera_pose(0.0, self.stops, self.fov, 4.0, 3.0, 2.0,
+                                True, self.camera, context)
+        middle = MOD.camera_pose(2.0, self.stops, self.fov, 4.0, 3.0, 2.0,
+                                 True, self.camera, context)
+        end = MOD.camera_pose(4.0 - 1e-7, self.stops, self.fov, 4.0, 3.0, 2.0,
+                              True, self.camera, context)
+        hold = MOD.camera_pose(4.0, self.stops, self.fov, 4.0, 3.0, 2.0,
+                               True, self.camera, context)
+        self.assertEqual(start["center"], context)
+        self.assertTrue(self.stops[0][0] < middle["center"][0] < context[0])
+        self.assertLess(abs(end["center"][0] - hold["center"][0]), 0.1)
+
     def test_invalid_camera_range_fails_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -73,6 +90,32 @@ class CameraMotionTest(unittest.TestCase):
             path.write_text(json.dumps(cfg), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "hold_pan_fraction"):
                 MOD.load_config(path)
+
+    def test_seeded_random_stops_are_reproducible_and_bounded(self):
+        pipeline = MOD.Pipeline.__new__(MOD.Pipeline)
+        pipeline.cv2, pipeline.np = cv2, np
+        pipeline.W, pipeline.H = 1920, 1080
+        pipeline.v = {"detail_fov_um": 200.0}
+        raw = np.tile(np.arange(100, dtype=np.uint8), (100, 1))
+        tissue = np.ones((100, 100), dtype=bool)
+        meta = {
+            "physical_size_nm": [1_000_000, 1_000_000],
+            "preview_resolution_nm": 10_000,
+            "preview_bounds_nm_relative_xyxy": [875_000, 1_875_000, 1_660_000, 2_660_000],
+        }
+        specimen = {"id": "fixture", "story": {"local_stops": {
+            "mode": "seeded_random", "seed": 20260815, "count": 4,
+            "min_tissue_fraction": 0.7, "min_center_distance_um": 150,
+        }}}
+        first = pipeline.choose_stops(raw, tissue, meta, specimen)
+        second = pipeline.choose_stops(raw, tissue, meta, specimen)
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 4)
+        for x, y in first:
+            self.assertTrue(975_000 <= x <= 1_775_000)
+            self.assertTrue(1_716_250 <= y <= 2_603_750)
+        self.assertTrue(all(np.hypot(a[0] - b[0], a[1] - b[1]) >= 150_000
+                            for index, a in enumerate(first) for b in first[index + 1:]))
 
 
 if __name__ == "__main__":

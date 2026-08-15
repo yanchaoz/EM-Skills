@@ -1,6 +1,6 @@
 ---
 name: cloudvolume-video
-description: Prepare and verify Neuroglancer precomputed EM data, then create reproducible scientific videos and review figures from CloudVolume datasets. Use for NPY/TIFF/Zarr-to-precomputed conversion; localhost Neuroglancer serving and viewer-state handoff; metadata and physical-alignment audits; bounded local-field raw/segmentation overlays; structure-density maps; smooth camera tours; existing precomputed mesh retrieval; bounded 3D label-to-mesh extraction; headless mesh turntables; or delivery verification. Supports one requested stage or an end-to-end package. Do not use to infer biological labels or turn a single 2D section into claimed 3D geometry.
+description: Prepare and verify Neuroglancer precomputed EM data, then create reproducible scientific videos and review figures from CloudVolume datasets. Use for NPY/TIFF/Zarr-to-precomputed conversion; bounded 1 mm context views; segmentation and structure-density presentation; seeded-random or representative local-field camera tours; localhost Neuroglancer handoff; existing or bounded label-derived meshes; and delivery verification. Supports one requested stage or an end-to-end package. Do not invent anatomical region names, infer biological labels, or turn a single 2D section into claimed 3D geometry.
 ---
 
 # CloudVolume Video
@@ -33,7 +33,7 @@ handoff-only, export-only, or verification-only request.
 - Record source URI, mip, bounds, resolution, voxel offset, axes, segment IDs, requested ROI, and output identity.
 - Keep source arrays immutable and write converted precomputed datasets only under a declared derived root.
 - Align categorical labels in physical coordinates with nearest-neighbor sampling. Never interpolate instance IDs continuously.
-- Default to bounded local fields. Whole-section density maps are optional analytical context, not the default example view.
+- Use an explicitly bounded context ROI when the user asks for a large local field such as 1 x 1 mm. Do not substitute a whole-organ frame.
 - Use an existing precomputed mesh when present. Otherwise run marching cubes only on an explicit, bounded 3D label ROI.
 - Treat precomputed mesh coordinates as physical nm unless the source contract explicitly says voxel coordinates.
 - Never extrude a single z section and call it a biological 3D mesh.
@@ -74,15 +74,35 @@ Mesh export/storyboard/render commands refuse to overwrite existing artifacts. U
 
 ## Design a local-field presentation
 
-Choose fields that answer the scientific question and declare their physical field of view. For multi-region tissue, compare matched local windows rather than scaling an entire organ to fit a frame. Preserve scale bars, segment colors, opacity, selected label IDs, and any excluded layers.
+Choose fields that answer the scientific question and declare their physical field of view. Preserve scale bars, segment colors, opacity, selected label IDs, and any excluded layers.
 
-Set `video.include_overview: false` when the requested delivery must contain local fields only. The pipeline may still compute overview assets internally for alignment and stop selection, but it excludes them from the storyboard, MP4 timeline, and `.ngvideo` handoff.
-
-A useful local sequence is:
+When the request says “show a 1 mm large field, then move to four random local
+fields,” implement this exact story contract:
 
 ```text
-region identity → raw EM → one structure overlay → density or occupancy → all overlays → local detail stops
+bounded 1 x 1 mm raw context
+  → segmentation results at the same context coordinates
+  → density maps at the same context coordinates
+  → visible camera move to seeded-random local view 1 → overlay hold
+  → visible moves and overlay holds for local views 2–4
 ```
+
+- Put `story.context_roi_um_xyxy` and `story.local_stops` in the specimen config.
+- Use `local_stops.mode: seeded_random`, record the integer seed, screen by
+  tissue fraction, enforce physical margins and minimum center separation, and
+  keep every local FOV inside the context ROI.
+- Label the stops `Random local view 1–4`. Do not rename them cortex, medulla,
+  papilla, or other anatomical regions unless those identities were supplied.
+- Show segmentation/density at the context scale once. Do not repeat raw,
+  masks, overlay, and density at every local stop unless explicitly requested.
+- Make the movement itself visible; a crossfade between unrelated fields is
+  not a camera tour.
+
+Use `local_stops.mode: representative` only when the user asks for
+representative or tissue-rich fields. Use manual `stops_um` only for supplied
+coordinates or approved named anatomy. “Random” never means representative.
+
+Set `video.include_overview: false` when the requested delivery must contain local fields only. The pipeline may still compute overview assets internally for alignment and stop selection, but it excludes them from the storyboard, MP4 timeline, and `.ngvideo` handoff.
 
 Use the `video.camera` block for restrained scientific camera motion. Prefer
 `smootherstep` easing, a slow push-in with slight pan during holds, and a small

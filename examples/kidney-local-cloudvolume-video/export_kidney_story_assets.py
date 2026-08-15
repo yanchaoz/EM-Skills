@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Export bounded kidney raw/mask/density assets from precomputed volumes.
+"""Export one kidney context ROI and seeded-random local detail ROIs.
 
-The export contains one 1 x 1 mm context ROI and four 200 x 112.5 um detail
-ROIs. It never reads or exports a whole-kidney presentation image.
+The context is 1 x 1 mm. Four 200 x 112.5 um local fields are sampled inside
+it with a recorded seed, tissue threshold, and minimum center separation.
 """
 
 from __future__ import annotations
@@ -24,14 +24,11 @@ LAYERS = (
     ("basement_membrane", "EM-WSI-KIDNEY-BM", "Basement membrane", [0, 225, 225]),
     ("lysosomes", "EM-WSI-KIDNEY-LY", "Lysosomes", [225, 0, 170]),
 )
-REGIONS = (
-    ("cortex", "Cortex", 900_000.0, 2_150_000.0),
-    ("junction", "Corticomedullary junction", 1_850_000.0, 2_170_000.0),
-    ("medulla", "Medulla", 3_050_000.0, 2_370_000.0),
-    ("papilla", "Renal papilla", 5_300_000.0, 1_720_000.0),
-)
 RAW_DATASET = "EM-WSI-KIDNEY"
 DISPLAY_WINDOW = (60.0, 230.0)
+CONTEXT_CENTER_NM = (1_375_000.0, 2_160_000.0)
+CONTEXT_FOV_NM = (1_000_000.0, 1_000_000.0)
+DETAIL_FOV_NM = (200_000.0, 112_500.0)
 
 
 def find_mip(volume, resolution_nm):
@@ -127,10 +124,40 @@ def export_roi(root, arrays, record, prefix, center_nm, fov_nm, resolution_nm, d
     })
 
 
+def select_random_regions(root, seed, count, min_distance_um, min_tissue_fraction):
+    rng = np.random.default_rng(seed)
+    context = bounds_from_center(CONTEXT_CENTER_NM, CONTEXT_FOV_NM)
+    min_x, max_x = context[0] + DETAIL_FOV_NM[0] / 2, context[1] - DETAIL_FOV_NM[0] / 2
+    min_y, max_y = context[2] + DETAIL_FOV_NM[1] / 2, context[3] - DETAIL_FOV_NM[1] / 2
+    selected = []
+    for candidate_index in range(1, 2001):
+        center = (float(rng.uniform(min_x, max_x)), float(rng.uniform(min_y, max_y)))
+        if any(math.dist(center, item["center_nm_xy"]) < min_distance_um * 1000 for item in selected):
+            continue
+        raw, _ = read_yx(root, RAW_DATASET, 160, bounds_from_center(center, DETAIL_FOV_NM))
+        tissue_fraction = float(np.mean((raw > 0) & (raw < 250)))
+        if tissue_fraction < min_tissue_fraction:
+            continue
+        selected.append({
+            "id": f"random-{len(selected) + 1:02d}",
+            "label": f"Random local view {len(selected) + 1}",
+            "center_nm_xy": list(center),
+            "selection_candidate_index": candidate_index,
+            "selection_tissue_fraction": tissue_fraction,
+        })
+        if len(selected) == count:
+            return selected
+    raise RuntimeError(f"Selected only {len(selected)}/{count} random local views")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--seed", type=int, default=20260815)
+    parser.add_argument("--random-count", type=int, default=4)
+    parser.add_argument("--min-center-distance-um", type=float, default=220.0)
+    parser.add_argument("--min-tissue-fraction", type=float, default=0.70)
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -146,19 +173,23 @@ def main():
         }
 
     arrays = {}
-    context = {"id": "cortex-junction-context", "label": "Cortex-junction context"}
+    context = {"id": "kidney-1mm-context", "label": "Kidney 1 mm context"}
     export_roi(
         args.source_root, arrays, context, "context",
-        center_nm=(1_375_000.0, 2_160_000.0), fov_nm=(1_000_000.0, 1_000_000.0),
-        resolution_nm=160, display_shape_yx=(1080, 1080),
+        center_nm=CONTEXT_CENTER_NM, fov_nm=CONTEXT_FOV_NM,
+        resolution_nm=160, display_shape_yx=(2160, 2160),
     )
     regions = []
-    for key, label, cx, cy in REGIONS:
-        print(f"EXPORT {label}", flush=True)
-        record = {"id": key, "label": label}
+    selected = select_random_regions(
+        args.source_root, args.seed, args.random_count,
+        args.min_center_distance_um, args.min_tissue_fraction,
+    )
+    for record in selected:
+        print(f"EXPORT {record['label']} center_nm={record['center_nm_xy']}", flush=True)
+        key = record["id"]
         export_roi(
             args.source_root, arrays, record, f"detail_{key}",
-            center_nm=(cx, cy), fov_nm=(200_000.0, 112_500.0),
+            center_nm=record["center_nm_xy"], fov_nm=DETAIL_FOV_NM,
             resolution_nm=80, display_shape_yx=(1080, 1920),
         )
         regions.append(record)
@@ -166,7 +197,14 @@ def main():
     np.savez_compressed(args.output, **arrays)
     manifest = {
         "description": "Bounded kidney CloudVolume assets for mask, overlay, and local-density video.",
-        "presentation_scope": "one 1 x 1 mm context ROI plus four local ROIs; no whole-kidney view",
+        "presentation_scope": "1 x 1 mm segmentation/density context followed by four seeded-random local views",
+        "story_sequence": ["context.raw", "context.masks", "context.overlay", "context.density", "four_local_camera_moves"],
+        "local_stop_selection": {
+            "mode": "seeded_random", "seed": args.seed, "count": args.random_count,
+            "min_center_distance_um": args.min_center_distance_um,
+            "min_tissue_fraction": args.min_tissue_fraction,
+            "bounded_by_context": True,
+        },
         "axes": "yx", "raw_display_window": list(DISPLAY_WINDOW),
         "density_method": "positive structure pixels / valid tissue pixels; valid raw intensity 0 < I < 250; Gaussian sigma 0.8 bins for display",
         "sources": sources, "context": context, "regions": regions,

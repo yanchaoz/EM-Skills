@@ -99,6 +99,22 @@ def load_config(path: Path):
                 raise ValueError(f"Invalid color_rgb in {specimen['id']}/{layer.get('id')}")
             if not 0 <= float(layer.get("opacity", 0.6)) <= 1:
                 raise ValueError(f"Invalid opacity in {specimen['id']}/{layer.get('id')}")
+        story = specimen.get("story", {})
+        roi = story.get("context_roi_um_xyxy")
+        if roi is not None and not (
+                isinstance(roi, list) and len(roi) == 4 and
+                all(isinstance(value, (int, float)) for value in roi) and
+                roi[0] < roi[1] and roi[2] < roi[3]):
+            raise ValueError(f"Invalid story.context_roi_um_xyxy in {specimen['id']}")
+        selection = story.get("local_stops", {})
+        if selection:
+            mode = selection.get("mode", "representative")
+            if mode not in {"representative", "seeded_random"}:
+                raise ValueError(f"Invalid story.local_stops.mode in {specimen['id']}")
+            if int(selection.get("count", 4)) <= 0:
+                raise ValueError(f"story.local_stops.count must be positive in {specimen['id']}")
+            if mode == "seeded_random" and not isinstance(selection.get("seed"), int):
+                raise ValueError(f"seeded_random requires an integer seed in {specimen['id']}")
     return cfg
 
 
@@ -141,7 +157,7 @@ def _hold_pose(stops, index, progress, base_fov_nm, camera):
 
 
 def camera_pose(t, stops, base_fov_nm, zoom_seconds, hold_seconds, move_seconds,
-                include_overview, camera):
+                include_overview, camera, entry_center=None):
     """Return center, physical FOV, stop index, and phase for a camera time."""
     if not stops:
         raise ValueError("Camera tour requires at least one stop")
@@ -152,8 +168,11 @@ def camera_pose(t, stops, base_fov_nm, zoom_seconds, hold_seconds, move_seconds,
     if zoom > 0.0 and t < zoom:
         u = easing_value(camera["easing"], t / zoom)
         start_fov = base_fov_nm * float(camera["entry_start_fov_multiplier"])
+        source_center = tuple(entry_center) if entry_center is not None else first_center
+        center = tuple(source_center[index] * (1.0 - u) + first_center[index] * u
+                       for index in range(2))
         return {
-            "center": first_center,
+            "center": center,
             "fov_nm": start_fov * (1.0 - u) + first_fov * u,
             "stop_index": None,
             "phase": "entry_zoom",
@@ -323,20 +342,37 @@ class Pipeline:
     def read_preview(self, specimen):
         native = self.native_meta(specimen["raw"])
         target = int(self.v["preview_resolution_nm"])
-        w = int(math.ceil(native["physical_size_nm"][0] / target))
-        h = int(math.ceil(native["physical_size_nm"][1] / target))
+        source_physical = tuple(native["physical_size_nm"])
+        roi = specimen.get("story", {}).get("context_roi_um_xyxy")
+        if roi is None:
+            bounds_nm = (0.0, source_physical[0], 0.0, source_physical[1])
+        else:
+            bounds_nm = tuple(float(value) * 1000.0 for value in roi)
+            if not (0 <= bounds_nm[0] < bounds_nm[1] <= source_physical[0] and
+                    0 <= bounds_nm[2] < bounds_nm[3] <= source_physical[1]):
+                raise ValueError(f"Context ROI is outside raw bounds for {specimen['id']}: {roi}")
+        x0 = int(math.floor(bounds_nm[0] / target)); x1 = int(math.ceil(bounds_nm[1] / target))
+        y0 = int(math.floor(bounds_nm[2] / target)); y1 = int(math.ceil(bounds_nm[3] / target))
+        w, h = x1 - x0, y1 - y0
         origin = tuple(native["origin_nm"])
-        raw = self.read_aligned(specimen["raw"], target, 0, w, 0, h, origin,
+        raw = self.read_aligned(specimen["raw"], target, x0, x1, y0, y1, origin,
                                 categorical=False, allow_bulk=True).astype(self.np.uint8)
         masks = {}; cache = {}
         for layer in specimen["layers"]:
             ds = layer["dataset"]
             if ds not in cache:
-                cache[ds] = self.read_aligned(ds, target, 0, w, 0, h, origin,
+                cache[ds] = self.read_aligned(ds, target, x0, x1, y0, y1, origin,
                                               categorical=True, allow_bulk=True)
             masks[layer["id"]] = self.label_mask(cache[ds], layer.get("label_value"))
-        meta = {**native, "preview_resolution_nm": target,
-                "preview_shape_xy": [w, h], "raw_origin_nm": list(origin)}
+        context_size = [w * target, h * target]
+        meta = {**native, "source_size_xy": native["size_xy"],
+                "source_physical_size_nm": list(source_physical),
+                "size_xy": [int(math.ceil(context_size[0] / native["resolution_nm"][0])),
+                            int(math.ceil(context_size[1] / native["resolution_nm"][1]))],
+                "physical_size_nm": context_size, "preview_resolution_nm": target,
+                "preview_shape_xy": [w, h], "raw_origin_nm": list(origin),
+                "preview_bounds_nm_relative_xyxy": [x0 * target, x1 * target, y0 * target, y1 * target],
+                "context_roi": roi is not None}
         return raw, masks, meta
 
     def tissue_mask(self, raw):
@@ -405,7 +441,8 @@ class Pipeline:
         f, display = self.fit_full(self.cv2.cvtColor(raw, self.cv2.COLOR_GRAY2BGR))
         n = meta["size_xy"]; res = meta["resolution_nm"]; p = meta["physical_size_nm"]
         self.panel(f, (48, 700, 900, 1018), .78)
-        self.outlined(f, f"{specimen['label']} whole-section EM", (78, 756), 1.03)
+        scope = "bounded context ROI" if meta.get("context_roi") else "whole-section EM"
+        self.outlined(f, f"{specimen['label']} | {scope}", (78, 756), 1.03)
         self.outlined(f, f"Native image: {n[0]:,} x {n[1]:,} px", (78, 814), .76)
         self.outlined(f, f"Highest resolution: {res[0]} x {res[1]} nm / pixel", (78, 866), .76)
         self.outlined(f, f"Physical field: {p[0] / 1e6:.3f} x {p[1] / 1e6:.3f} mm", (78, 918), .76)
@@ -455,8 +492,9 @@ class Pipeline:
         t = self.cv2.resize(tissue.astype(self.np.float32), (sw, sh), interpolation=self.cv2.INTER_AREA)
         ys, xs = self.np.nonzero(t > .35)
         data_w, data_h = meta["physical_size_nm"]
+        context_x0, _, context_y0, _ = meta["preview_bounds_nm_relative_xyxy"]
         if not len(xs):
-            return [(data_w * (.2 + i * .2), data_h / 2) for i in range(4)]
+            raise RuntimeError(f"No valid tissue pixels available for local-stop selection in {specimen['id']}")
         preview = meta["preview_resolution_nm"]; fov_nm = float(self.v["detail_fov_um"]) * 1000
         ww = max(9, round(fov_nm / preview / shrink)); wh = max(7, round(fov_nm * self.H / self.W / preview / shrink))
         coverage = self.cv2.boxFilter(t, -1, (ww, wh), normalize=True, borderType=self.cv2.BORDER_CONSTANT)
@@ -465,12 +503,38 @@ class Pipeline:
         score = coverage + .12 * self.np.clip(self.np.sqrt(self.np.maximum(0, mean2 - mean * mean)) / 55, 0, 1)
         mx, my = max(1, ww // 2), max(1, wh // 2)
         score[:my] = score[-my:] = -1; score[:, :mx] = score[:, -mx:] = -1
+        selection = specimen.get("story", {}).get("local_stops", {})
+        count = int(selection.get("count", 4))
+        if selection.get("mode") == "seeded_random":
+            threshold = float(selection.get("min_tissue_fraction", 0.70))
+            min_distance = float(selection.get("min_center_distance_um", 0.0)) * 1000.0
+            eligible_y, eligible_x = self.np.nonzero(coverage >= threshold)
+            valid = ((eligible_x >= mx) & (eligible_x < sw - mx) &
+                     (eligible_y >= my) & (eligible_y < sh - my))
+            eligible_x, eligible_y = eligible_x[valid], eligible_y[valid]
+            if not len(eligible_x):
+                raise RuntimeError(f"No random local stops meet tissue threshold {threshold}")
+            rng = self.np.random.default_rng(int(selection["seed"]))
+            order = rng.permutation(len(eligible_x))
+            points = []
+            for candidate in order:
+                point = (context_x0 + (float(eligible_x[candidate]) + .5) * shrink * preview,
+                         context_y0 + (float(eligible_y[candidate]) + .5) * shrink * preview)
+                if all(math.dist(point, previous) >= min_distance for previous in points):
+                    points.append(point)
+                    if len(points) == count:
+                        return points
+            raise RuntimeError(
+                f"Could select only {len(points)}/{count} seeded-random stops; "
+                "lower min_center_distance_um or tissue threshold"
+            )
         points = []
-        for q0, q1 in ((.06, .28), (.29, .49), (.51, .71), (.72, .94)):
+        bands = [(index / count, (index + 1) / count) for index in range(count)]
+        for q0, q1 in bands:
             bx0 = max(mx, int(self.np.quantile(xs, q0))); bx1 = min(sw - mx, int(self.np.quantile(xs, q1)) + 1)
             candidate = score[:, bx0:bx1]; iy, ix = self.np.unravel_index(int(self.np.argmax(candidate)), candidate.shape)
-            points.append((min(data_w, (bx0 + ix + .5) * shrink * preview),
-                           min(data_h, (iy + .5) * shrink * preview)))
+            points.append((context_x0 + min(data_w, (bx0 + ix + .5) * shrink * preview),
+                           context_y0 + min(data_h, (iy + .5) * shrink * preview)))
         return points
 
     def load_detail(self, specimen, stops, meta):
@@ -486,6 +550,10 @@ class Pipeline:
         xs = [p[0] for p in stops]; ys = [p[1] for p in stops]
         x0 = max(0, math.floor((min(xs) - fov / 2 - margin) / res)); x1 = math.ceil((max(xs) + fov / 2 + margin) / res)
         y0 = max(0, math.floor((min(ys) - fh / 2 - margin) / res)); y1 = math.ceil((max(ys) + fh / 2 + margin) / res)
+        if meta.get("context_roi") and bool(self.v.get("include_overview", True)):
+            bx0, bx1, by0, by1 = meta["preview_bounds_nm_relative_xyxy"]
+            x0 = min(x0, max(0, math.floor(bx0 / res))); x1 = max(x1, math.ceil(bx1 / res))
+            y0 = min(y0, max(0, math.floor(by0 / res))); y1 = max(y1, math.ceil(by1 / res))
         origin = tuple(meta["raw_origin_nm"])
         raw = self.read_aligned(specimen["raw"], res, x0, x1, y0, y1, origin, categorical=False).astype(self.np.uint8)
         masks = {}; cache = {}
@@ -581,12 +649,12 @@ class Pipeline:
         out = self.output_dir(specimen); self.cv2.imwrite(str(out / "storyboard.jpg"), sheet, [self.cv2.IMWRITE_JPEG_QUALITY, 93])
         print(f"DONE_STORYBOARD {specimen['id']} {out / 'storyboard.jpg'}", flush=True)
 
-    def camera_frame(self, t, all_frame, stops, detail, origin):
+    def camera_frame(self, t, all_frame, stops, detail, origin, context_center=None):
         base_fov = float(self.v["detail_fov_um"]) * 1000
         include_overview = bool(self.v.get("include_overview", True))
         pose = camera_pose(
             t, stops, base_fov, self.v["zoom_seconds"], self.v["hold_seconds"],
-            self.v["move_seconds"], include_overview, self.v["camera"],
+            self.v["move_seconds"], include_overview, self.v["camera"], context_center,
         )
         center, fov = pose["center"], pose["fov_nm"]
         target = self.crop_detail(detail, *center, fov, origin)
@@ -641,7 +709,8 @@ class Pipeline:
 
         include_overview = bool(self.v.get("include_overview", True))
         if include_overview:
-            static("Whole-section metadata", frames["metadata"], self.v["metadata_seconds"], "metadata")
+            scope_label = "Bounded context" if manifest["preview_meta"].get("context_roi") else "Whole-section metadata"
+            static(scope_label, frames["metadata"], self.v["metadata_seconds"], "metadata")
             for layer in specimen["layers"]:
                 k = layer["id"]
                 static(layer["label"], frames[f"overlay_{k}"], self.v["isolated_seconds"], "isolated_overlay")
@@ -649,9 +718,11 @@ class Pipeline:
             static("All structures", frames["all"], self.v["all_seconds"], "all_layers")
         camera_seconds = ((float(self.v["zoom_seconds"]) if include_overview else 0.0) + len(stops) * float(self.v["hold_seconds"]) +
                           (len(stops) - 1) * float(self.v["move_seconds"]))
+        bx0, bx1, by0, by1 = manifest["preview_meta"]["preview_bounds_nm_relative_xyxy"]
+        context_center = ((bx0 + bx1) / 2, (by0 + by1) / 2)
         start = index / self.FPS; source = previous; count = round(camera_seconds * self.FPS)
         for j in range(count):
-            target = self.camera_frame(j / self.FPS, frames["all"], stops, detail, origin)
+            target = self.camera_frame(j / self.FPS, frames["all"], stops, detail, origin, context_center)
             if source is not None and j < int(self.v["fade_frames"]):
                 a = smoothstep(j / max(1, int(self.v["fade_frames"]) - 1)); target = self.cv2.addWeighted(source, 1 - a, target, a, 0)
             emit(target)
@@ -686,8 +757,10 @@ class Pipeline:
         out = self.output_dir(specimen); ng = self.cfg.get("neuroglancer", {})
         base = ng.get("base_url", "http://127.0.0.1:1337"); viewer = ng.get("viewer_url", "https://neuroglancer-demo.appspot.com/")
         meta = manifest["preview_meta"]; native_res = meta["resolution_nm"][0]
-        raw_origin = meta["raw_origin_nm"]; center_world = (raw_origin[0] + meta["physical_size_nm"][0] / 2,
-                                                            raw_origin[1] + meta["physical_size_nm"][1] / 2)
+        raw_origin = meta["raw_origin_nm"]
+        bx0, bx1, by0, by1 = meta["preview_bounds_nm_relative_xyxy"]
+        center_world = (raw_origin[0] + (bx0 + bx1) / 2,
+                        raw_origin[1] + (by0 + by1) / 2)
         overview_scale = max(meta["size_xy"][0] / self.W, meta["size_xy"][1] / self.H) * 1.08
         def state(active, center=center_world, scale=overview_scale):
             layers = [{"type": "image", "source": f"precomputed://{base}/{specimen['raw']}", "name": "Original"}]
@@ -756,7 +829,8 @@ class Pipeline:
         overview_duration = (float(self.v["metadata_seconds"]) + n_layers *
             (float(self.v["isolated_seconds"]) + float(self.v["density_seconds"])) + float(self.v["all_seconds"]) +
             float(self.v["zoom_seconds"])) if include_overview else 0.0
-        stop_count = len(specimen.get("stops_um") or []) or 4
+        stop_count = (len(specimen.get("stops_um") or []) or
+                      int(specimen.get("story", {}).get("local_stops", {}).get("count", 4)))
         duration = (overview_duration + stop_count * float(self.v["hold_seconds"]) +
                     max(0, stop_count - 1) * float(self.v["move_seconds"]))
         return {"specimen": specimen["id"], "datasets": records, "issues": issues,

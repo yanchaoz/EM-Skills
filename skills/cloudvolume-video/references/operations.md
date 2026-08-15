@@ -53,7 +53,11 @@ If repeated use justifies a derived pyramid, create it under the output root and
 
 ## Representative fields
 
-Automatic stops should be ordered left-to-right and maximize local tissue coverage plus texture within four X bands. Use manual `stops_um` when anatomical regions matter. Record X/Y ranges and the FOV on each hold.
+- `seeded_random`: sample uniformly from tissue-eligible centers inside the declared context ROI, preserve the sampled order, record the seed, and enforce FOV margins plus minimum center separation.
+- `representative`: maximize tissue coverage and texture; ordering along an intended path is allowed.
+- `stops_um`: use only for supplied or approved coordinates, including named anatomy.
+
+Do not turn random stops into representative fields or attach anatomical names without provenance. Record X/Y ranges, selection mode, seed when applicable, and FOV on every hold.
 
 ## Mesh operations
 

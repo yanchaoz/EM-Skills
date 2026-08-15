@@ -4,10 +4,10 @@
   "width": 1920,
   "height": 1080,
   "fps": 24.0,
-  "frame_count": 992,
-  "duration_seconds": 41.333333333333336,
-  "sha256": "2c137e9057f2ed393774b95163f453a9f763fc3aefa52103e77ef51e3fc28419",
-  "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
+  "frame_count": 732,
+  "duration_seconds": 30.5,
+  "sha256": "482bd8623c28db17cb73853c472d11988356619ce59f3680d6031640cc00bce8",
+  "scope": "1 x 1 mm segmentation/density context followed by four seeded-random 200 x 112.5 um local views",
   "layers": [
     "Nuclei",
     "Mitochondria",
@@ -17,39 +17,117 @@
   "density_method": "positive structure pixels / valid tissue pixels; valid raw intensity 0 < I < 250; Gaussian sigma 0.8 bins for display",
   "camera_motion": {
     "easing": "smoothstep",
-    "push_in_percent": 4.5,
+    "first_move_fov_um": "900 -> 200",
+    "between_view_midpoint_zoom_out_percent": 72,
+    "local_hold_push_in_percent": 4.5,
     "pan_fraction_of_frame": 0.012,
-    "applied_to": "raw and aligned combined-overlay composites",
+    "applied_to": "aligned combined-overlay composites",
     "motion_mean_absolute_frame_differences": {
-      "context.raw": 21.12554931640625,
-      "context.overlay": 22.370315551757812,
-      "detail_cortex.raw": 22.537954330444336,
-      "detail_cortex.overlay": 27.45728874206543,
-      "detail_junction.raw": 29.222841262817383,
-      "detail_junction.overlay": 27.846139907836914,
-      "detail_medulla.raw": 25.61390495300293,
-      "detail_medulla.overlay": 27.650699615478516,
-      "detail_papilla.raw": 29.952911376953125,
-      "detail_papilla.overlay": 28.124526977539062
+      "context.overlay": 22.716466903686523,
+      "random-01.move": 52.022010803222656,
+      "detail_random-01.overlay": 24.05710220336914,
+      "random-02.move": 67.08777618408203,
+      "detail_random-02.overlay": 28.226882934570312,
+      "random-03.move": 72.77220916748047,
+      "detail_random-03.overlay": 34.36375427246094,
+      "random-04.move": 63.13129806518555,
+      "detail_random-04.overlay": 29.935197830200195
     }
+  },
+  "local_stop_selection": {
+    "mode": "seeded_random",
+    "seed": 20260815,
+    "count": 4,
+    "min_center_distance_um": 220.0,
+    "min_tissue_fraction": 0.7,
+    "bounded_by_context": true
+  },
+  "local_views": [
+    {
+      "id": "random-01",
+      "label": "Random local view 1",
+      "center_nm_xy": [
+        1396422.7255103155,
+        2298087.6407358306
+      ],
+      "bounds_um_xyxy": [
+        1296.4227255103156,
+        1496.4227255103156,
+        2241.8376407358305,
+        2354.3376407358305
+      ],
+      "selection_candidate_index": 1,
+      "selection_tissue_fraction": 1.0
+    },
+    {
+      "id": "random-02",
+      "label": "Random local view 2",
+      "center_nm_xy": [
+        987116.806332562,
+        2587215.1890683738
+      ],
+      "bounds_um_xyxy": [
+        887.116806332562,
+        1087.1168063325622,
+        2530.9651890683735,
+        2643.4651890683735
+      ],
+      "selection_candidate_index": 3,
+      "selection_tissue_fraction": 1.0
+    },
+    {
+      "id": "random-03",
+      "label": "Random local view 3",
+      "center_nm_xy": [
+        1103004.171687046,
+        2035059.6124417284
+      ],
+      "bounds_um_xyxy": [
+        1003.0041716870461,
+        1203.004171687046,
+        1978.8096124417284,
+        2091.3096124417284
+      ],
+      "selection_candidate_index": 4,
+      "selection_tissue_fraction": 1.0
+    },
+    {
+      "id": "random-04",
+      "label": "Random local view 4",
+      "center_nm_xy": [
+        1554140.8243888274,
+        2027130.939821547
+      ],
+      "bounds_um_xyxy": [
+        1454.1408243888275,
+        1654.1408243888275,
+        1970.880939821547,
+        2083.3809398215467
+      ],
+      "selection_candidate_index": 6,
+      "selection_tissue_fraction": 1.0
+    }
+  ],
+  "source_info_sha256": {
+    "EM-WSI-KIDNEY": "fc805e3d31f44f597dce927bbd56b04b3f957e5b37ebfe4adf25cdb9af242599",
+    "EM-WSI-KIDNEY-NC": "0e22a9c5830225e577f6623a2f6793bdae3e47cdea8b0de432aa5bc7f5e8ce2a",
+    "EM-WSI-KIDNEY-MITO": "0e22a9c5830225e577f6623a2f6793bdae3e47cdea8b0de432aa5bc7f5e8ce2a",
+    "EM-WSI-KIDNEY-BM": "0e22a9c5830225e577f6623a2f6793bdae3e47cdea8b0de432aa5bc7f5e8ce2a",
+    "EM-WSI-KIDNEY-LY": "8863bcddee559d2ce867a35806722f0860a0e4bae09d8abc5b5aacb8d1a46088"
   },
   "selected_keyframes": [
     "context.raw",
     "context.masks",
     "context.overlay",
     "context.density",
-    "detail_cortex.masks",
-    "detail_cortex.overlay",
-    "detail_cortex.density",
-    "detail_junction.masks",
-    "detail_junction.overlay",
-    "detail_junction.density",
-    "detail_medulla.masks",
-    "detail_medulla.overlay",
-    "detail_medulla.density",
-    "detail_papilla.masks",
-    "detail_papilla.overlay",
-    "detail_papilla.density"
+    "random-01.move",
+    "detail_random-01.overlay",
+    "random-02.move",
+    "detail_random-02.overlay",
+    "random-03.move",
+    "detail_random-03.overlay",
+    "random-04.move",
+    "detail_random-04.overlay"
   ],
   "motion_contact_sheet": "kidney-local-fields-tour-motion-contact-sheet.jpg",
   "checks": {
@@ -58,8 +136,11 @@
     "frame_count": true,
     "all_selected_keyframes_decoded": true,
     "one_1x1_mm_context": true,
-    "four_detail_rois": true,
-    "all_story_stages_present": true,
+    "context_segmentation_then_density": true,
+    "four_seeded_random_detail_rois": true,
+    "random_centers_inside_context": true,
+    "no_invented_anatomical_region_names": true,
+    "four_visible_camera_moves": true,
     "four_masks_present": true,
     "smooth_camera_motion_present": true
   },
@@ -67,143 +148,87 @@
   "timeline": [
     {
       "key": "context.raw",
-      "title": "Cortex-junction context - raw",
+      "title": "Kidney 1 mm context - raw",
       "first_frame": 0,
       "last_frame": 39,
       "mid_frame": 19
     },
     {
       "key": "context.masks",
-      "title": "Cortex-junction context - masks",
+      "title": "Kidney 1 mm context - masks",
       "first_frame": 48,
       "last_frame": 88,
       "mid_frame": 68
     },
     {
       "key": "context.overlay",
-      "title": "Cortex-junction context - overlay",
+      "title": "Kidney 1 mm context - overlay",
       "first_frame": 97,
       "last_frame": 139,
       "mid_frame": 118
     },
     {
       "key": "context.density",
-      "title": "Cortex-junction context - density",
+      "title": "Kidney 1 mm context - density",
       "first_frame": 148,
       "last_frame": 191,
       "mid_frame": 169
     },
     {
-      "key": "detail_cortex.raw",
-      "title": "Cortex - raw",
+      "key": "random-01.move",
+      "title": "Move to random local view 1",
       "first_frame": 200,
-      "last_frame": 239,
-      "mid_frame": 219
+      "last_frame": 257,
+      "mid_frame": 228
     },
     {
-      "key": "detail_cortex.masks",
-      "title": "Cortex - masks",
-      "first_frame": 248,
-      "last_frame": 288,
-      "mid_frame": 268
+      "key": "detail_random-01.overlay",
+      "title": "Random local view 1 - overlay",
+      "first_frame": 266,
+      "last_frame": 326,
+      "mid_frame": 296
     },
     {
-      "key": "detail_cortex.overlay",
-      "title": "Cortex - overlay",
-      "first_frame": 297,
-      "last_frame": 339,
-      "mid_frame": 318
+      "key": "random-02.move",
+      "title": "Move to random local view 2",
+      "first_frame": 335,
+      "last_frame": 392,
+      "mid_frame": 363
     },
     {
-      "key": "detail_cortex.density",
-      "title": "Cortex - density",
-      "first_frame": 348,
-      "last_frame": 391,
-      "mid_frame": 369
+      "key": "detail_random-02.overlay",
+      "title": "Random local view 2 - overlay",
+      "first_frame": 401,
+      "last_frame": 461,
+      "mid_frame": 431
     },
     {
-      "key": "detail_junction.raw",
-      "title": "Corticomedullary junction - raw",
-      "first_frame": 400,
-      "last_frame": 439,
-      "mid_frame": 419
+      "key": "random-03.move",
+      "title": "Move to random local view 3",
+      "first_frame": 470,
+      "last_frame": 527,
+      "mid_frame": 498
     },
     {
-      "key": "detail_junction.masks",
-      "title": "Corticomedullary junction - masks",
-      "first_frame": 448,
-      "last_frame": 488,
-      "mid_frame": 468
+      "key": "detail_random-03.overlay",
+      "title": "Random local view 3 - overlay",
+      "first_frame": 536,
+      "last_frame": 596,
+      "mid_frame": 566
     },
     {
-      "key": "detail_junction.overlay",
-      "title": "Corticomedullary junction - overlay",
-      "first_frame": 497,
-      "last_frame": 539,
-      "mid_frame": 518
+      "key": "random-04.move",
+      "title": "Move to random local view 4",
+      "first_frame": 605,
+      "last_frame": 662,
+      "mid_frame": 633
     },
     {
-      "key": "detail_junction.density",
-      "title": "Corticomedullary junction - density",
-      "first_frame": 548,
-      "last_frame": 591,
-      "mid_frame": 569
-    },
-    {
-      "key": "detail_medulla.raw",
-      "title": "Medulla - raw",
-      "first_frame": 600,
-      "last_frame": 639,
-      "mid_frame": 619
-    },
-    {
-      "key": "detail_medulla.masks",
-      "title": "Medulla - masks",
-      "first_frame": 648,
-      "last_frame": 688,
-      "mid_frame": 668
-    },
-    {
-      "key": "detail_medulla.overlay",
-      "title": "Medulla - overlay",
-      "first_frame": 697,
-      "last_frame": 739,
-      "mid_frame": 718
-    },
-    {
-      "key": "detail_medulla.density",
-      "title": "Medulla - density",
-      "first_frame": 748,
-      "last_frame": 791,
-      "mid_frame": 769
-    },
-    {
-      "key": "detail_papilla.raw",
-      "title": "Renal papilla - raw",
-      "first_frame": 800,
-      "last_frame": 839,
-      "mid_frame": 819
-    },
-    {
-      "key": "detail_papilla.masks",
-      "title": "Renal papilla - masks",
-      "first_frame": 848,
-      "last_frame": 888,
-      "mid_frame": 868
-    },
-    {
-      "key": "detail_papilla.overlay",
-      "title": "Renal papilla - overlay",
-      "first_frame": 897,
-      "last_frame": 939,
-      "mid_frame": 918
-    },
-    {
-      "key": "detail_papilla.density",
-      "title": "Renal papilla - density",
-      "first_frame": 948,
-      "last_frame": 991,
-      "mid_frame": 969
+      "key": "detail_random-04.overlay",
+      "title": "Random local view 4 - overlay",
+      "first_frame": 671,
+      "last_frame": 731,
+      "mid_frame": 701
     }
   ]
 }

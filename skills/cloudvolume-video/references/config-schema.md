@@ -80,7 +80,7 @@ and server safety, read [the precomputed contract](precomputed-contract.md).
   "move_seconds": 3.0,
   "camera": {
     "easing": "smootherstep",
-    "entry_start_fov_multiplier": 1.40,
+    "entry_start_fov_multiplier": 5.0,
     "hold_pan_fraction": 0.035,
     "hold_zoom_fraction": 0.06,
     "transition_zoom_out_fraction": 0.16
@@ -95,7 +95,7 @@ and server safety, read [the precomputed contract](precomputed-contract.md).
 }
 ```
 
-All times are seconds. Resolutions are isotropic XY nanometres per pixel. `density_bin_um` is a physical size, not a fixed pixel count. Set `include_overview: false` for a local-fields-only storyboard/video; overview assets may still be computed internally to locate and align the bounded fields, but they are not displayed. Set `bulk_missing_mip_max_gb` to `0` to force bounded tiled reading.
+All times are seconds. Resolutions are isotropic XY nanometres per pixel. `density_bin_um` is a physical size, not a fixed pixel count. With a specimen `story.context_roi_um_xyxy`, `include_overview: true` displays that bounded context rather than the whole organ. Set it to `false` only when the delivery must contain local fields without any context. Set `bulk_missing_mip_max_gb` to `0` to force bounded tiled reading.
 
 ### Camera motion
 
@@ -103,8 +103,9 @@ All times are seconds. Resolutions are isotropic XY nanometres per pixel. `densi
 
 - `easing`: `linear`, `smoothstep`, `smootherstep`, or `cosine`; use
   `smootherstep` for zero-slope starts and stops.
-- `entry_start_fov_multiplier`: initial high-resolution FOV relative to
-  `detail_fov_um` during the overview-to-detail entry zoom; must be at least 1.
+- `entry_start_fov_multiplier`: initial FOV relative to `detail_fov_um` during
+  the context-to-first-detail move; must be at least 1. Use `5.0` for a 1000 um
+  context and 200 um local FOV so the move visibly starts at context scale.
 - `hold_pan_fraction`: total pan amplitude as a fraction of detail FOV. Values
   above `0.08` are usually distracting for scientific review; maximum `0.20`.
 - `hold_zoom_fraction`: slow hold push-in, expressed as the starting excess FOV
@@ -142,6 +143,16 @@ Set `layout` to a supported Neuroglancer layout only when the handoff should ope
   "label": "Lung",
   "raw": "EM-WSI-Lung",
   "layers": [],
+  "story": {
+    "context_roi_um_xyxy": [875, 1875, 1660, 2660],
+    "local_stops": {
+      "mode": "seeded_random",
+      "seed": 20260815,
+      "count": 4,
+      "min_tissue_fraction": 0.70,
+      "min_center_distance_um": 220
+    }
+  },
   "stops_um": null,
   "excluded_layers": [{"dataset": "EM-WSI-Lung-Red", "reason": "RBC"}]
 }
@@ -151,7 +162,12 @@ Set `layout` to a supported Neuroglancer layout only when the handoff should ope
 - `label`: title shown in video.
 - `raw`: image dataset path relative to `source_root`, or absolute path.
 - `layers`: ordered overlays.
-- `stops_um`: `null` for four automatic tissue-rich X-ordered fields, or `[[x_um,y_um], ...]` for manual centers.
+- `story.context_roi_um_xyxy`: optional bounded context `[x0,x1,y0,y1]` in µm relative to the raw origin. `[875,1875,1660,2660]` is exactly 1 x 1 mm.
+- `story.local_stops.mode`: `seeded_random` for reproducible random fields or `representative` for tissue-rich fields. These meanings are not interchangeable.
+- `story.local_stops.seed`: required integer for `seeded_random`; preserve it in the manifest and captions.
+- `story.local_stops.count`: number of local holds; use four when the request says four.
+- `min_tissue_fraction`: valid-tissue eligibility threshold; `min_center_distance_um` prevents redundant overlapping views.
+- `stops_um`: manual `[[x_um,y_um], ...]` centers. When present, these override automatic stop selection.
 - `excluded_layers`: provenance-only list written into manifests.
 
 ## Layer object

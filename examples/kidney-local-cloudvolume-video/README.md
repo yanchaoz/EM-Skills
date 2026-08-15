@@ -1,34 +1,36 @@
-# Kidney CloudVolume mask, overlay, and density video
+# Kidney CloudVolume context-to-random-local video
 
-This example presents a **bounded 1 x 1 mm kidney context ROI**, followed by
-four **200 x 112.5 um detail ROIs**. It never reconstructs or displays a
-whole-kidney frame.
+This example presents segmentation and density over a **bounded 1 x 1 mm
+kidney context ROI**, then visibly moves to four seeded-random **200 x 112.5
+um local ROIs** inside that context. It never displays a whole-kidney frame.
 
 ## What the video shows
 
-[▶ Watch or download the verified 41-second, 1080p video](kidney-local-fields-tour.mp4)
+[▶ Watch or download the verified 30.5-second, 1080p video](kidney-local-fields-tour.mp4)
 
-Each ROI follows the same auditable sequence:
+The auditable sequence is:
 
-1. raw electron microscopy;
-2. separate semantic masks for nuclei, mitochondria, basement membrane, and
-   lysosomes;
-3. a combined transparent overlay on the raw EM;
-4. local structure-density maps.
+1. raw EM over the 1 x 1 mm context;
+2. nuclei, mitochondria, basement-membrane, and lysosome masks at the same
+   context coordinates;
+3. the combined context overlay;
+4. four context-scale density maps;
+5. a physical-coordinate camera move to random local view 1 and an overlay
+   hold, repeated for views 2–4.
 
-Raw and combined-overlay holds use the same eased 4.5% push-in and subtle pan.
-The transform is applied once to the aligned composite, so masks cannot drift
-relative to the EM. Titles and side panels remain locked; the physical scale
-bar is recalculated for the instantaneous camera FOV.
+The first camera move changes from a 900 um FOV to 200 um; later moves use a
+restrained midpoint zoom-out. Local holds use an eased 4.5% push-in and subtle
+pan. Raw and masks share one transform, and the physical scale bar follows the
+instantaneous FOV.
 
-The 1 x 1 mm context is sampled at 160 nm/px. The cortex,
-corticomedullary-junction, medulla, and renal-papilla detail fields are sampled
-at 80 nm/px. Scale bars and physical bounds are taken from the export manifest.
+The context is sampled at 160 nm/px; local fields are sampled at 80 nm/px.
+Selection uses seed `20260815`, valid-tissue fraction at least `0.70`, and at
+least `220 um` between centers. Stops retain neutral names—no anatomical
+identity is inferred.
 
 ![Video verification contact sheet](kidney-local-fields-tour-contact-sheet.jpg)
 
-The motion QA sheet samples the start, midpoint, and end of context/cortex raw
-and overlay holds:
+The motion QA sheet samples the start, midpoint, and end of all four moves:
 
 ![Camera motion verification](kidney-local-fields-tour-motion-contact-sheet.jpg)
 
@@ -46,14 +48,16 @@ Export only the bounded ROIs:
 ```bash
 python export_kidney_story_assets.py \
   --source-root /path/to/precomputed/root \
-  --output kidney_local_story_assets.npz
+  --output kidney_random_story_assets.npz \
+  --seed 20260815 \
+  --random-count 4
 ```
 
 Then render and verify the MP4:
 
 ```bash
 python make_local_tour.py \
-  --assets kidney_local_story_assets.npz \
+  --assets kidney_random_story_assets.npz \
   --force
 ```
 
@@ -64,12 +68,12 @@ keyframe samples, and a machine-readable verification report.
 
 ## Verified artifact
 
-- video: `1920 x 1080`, 24 fps, 992 frames, 41.33 seconds;
-- scope: one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs;
+- video: `1920 x 1080`, 24 fps, 732 frames, 30.5 seconds;
+- scope: 1 x 1 mm segmentation/density context plus four seeded-random local views;
 - layers: nuclei, mitochondria, basement membrane, lysosomes;
-- camera: smoothstep easing, 4.5% push-in, 1.2% pan, locked raw-mask transform;
-- SHA-256: `2c137e9057f2ed393774b95163f453a9f763fc3aefa52103e77ef51e3fc28419`;
-- all 16 selected raw/mask/overlay/density keyframes decoded successfully.
+- camera: four visible moves, smoothstep easing, restrained zoom-out, locked raw-mask transform;
+- SHA-256: `482bd8623c28db17cb73853c472d11988356619ce59f3680d6031640cc00bce8`;
+- all 12 story keyframes decoded successfully; all verification checks passed.
 
 See [`kidney-local-fields-tour.verification.json`](kidney-local-fields-tour.verification.json)
 for the checks and complete timeline. The storyboard is retained at

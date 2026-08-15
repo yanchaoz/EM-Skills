@@ -119,10 +119,10 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 请对这些肾脏数据使用 $cloudvolume-video。如果输入是 TIFF、NPY、Zarr 或 N5，
 先按明确的轴顺序和 voxel size 生成派生的 Neuroglancer precomputed 数据，
 做精确回读验证并生成 viewer 交接；已有 precomputed 输入则跳过转换。然后审计物理对齐，
-先用有界的 1 x 1 mm 背景 ROI 建立空间尺度，再展示皮质、皮髓交界、
-髓质和肾乳头的 200 x 112.5 um 匹配细节视野，不要使用全肾概览。
-依次渲染 raw EM、独立 masks、组合 overlay 和局部密度图。使用 smootherstep
-缓动、克制的 hold 推近/平移和转场拉远，并让 raw 与 mask 始终共用一个变换。
+使用有界的 1 x 1 mm context ROI，在完全相同的坐标上依次展示分割结果和密度图。
+记录随机种子，从该 context 内随机选择四个组织有效的 200 x 112.5 um 局部视野；
+让镜头分别可见地移动到四个位置并停留展示组合 overlay。不要把随机位置擅自命名为
+解剖区域，也不要在每个局部位置重复全部 context 阶段。让 raw 与 mask 始终共用一个物理变换。
 如果存在有效的三维 mesh
 元数据，导出指定 segment IDs，并生成经过验证的 turntable 视频。
 ```
@@ -183,13 +183,13 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 
 ### CloudVolume 视频：肾脏局部视野
 
-展示先以有界的 **1 x 1 mm** 背景 ROI 建立空间尺度，再进入皮质、皮髓交界、髓质和肾乳头四个 **200 x 112.5 um** 细节视野。视频依次展示 raw EM、四类独立 mask、透明 overlay 和局部密度图，且不出现全肾画面。平滑推近/平移时 raw 与 mask 始终共用一个变换。密度表示预测结构在有效组织像素中的占比，不能替代 ground-truth 准确率评估。
+视频在一个有界的 **1 x 1 mm** context ROI 上展示分割结果与密度图，随后可见地移动到该 ROI 内四个由固定种子生成的 **200 x 112.5 um** 随机局部视野，并停留展示组合 overlay。随机位置使用中性编号，不推断解剖身份。密度表示预测结构在有效组织像素中的占比，不能替代 ground-truth 准确率评估。
 
-| 视频关键帧验证 | 局部区域密度汇总 |
+| 视频关键帧验证 | 固定种子的随机局部占比汇总 |
 | --- | --- |
 | ![肾脏视频 mask、overlay 与密度关键帧](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour-contact-sheet.jpg) | ![肾脏局部密度对比](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
 
-[▶ 查看或下载经过验证的 41 秒、1080p 肾脏 mask/overlay/密度视频](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
+[▶ 查看或下载经过验证的 30.5 秒、1080p 肾脏 context-to-random-local 视频](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
 
 该肾脏来源是单切片 WSI，因此不会被包装成真实三维 mesh 结果。Skill 测试会独立验证已有 mesh 读取、有界标签转 mesh、完整 PLY 导出、无界面 turntable 渲染与视频校验。[完整局部视野记录](examples/kidney-local-cloudvolume-video/README.md)
 

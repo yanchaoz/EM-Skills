@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Render and verify a bounded kidney EM mask/overlay/density story.
+"""Render a 1 mm kidney segmentation/density story and random local tour.
 
-The input is produced by ``export_kidney_story_assets.py``.  The presentation
-scope is deliberately bounded: one 1 x 1 mm context ROI and four smaller
-200 x 112.5 um ROIs.  A whole-kidney image is never reconstructed.
+The input is produced by ``export_kidney_story_assets.py``. Segmentation and
+density are shown once at the large context scale. The camera then visibly
+moves to four seeded-random 200 x 112.5 um local overlay views.
 """
 
 from __future__ import annotations
@@ -206,7 +206,7 @@ def legend_card(frame, record, x0=1420, y0=210):
         put(frame, f"{density:.2f}% of valid tissue", (x0 + 54, y + 34), 0.48, MUTED, 1)
 
 
-def overlay_state(prefix, raw, masks, record, scope_label):
+def overlay_state(prefix, raw, masks, record, scope_label, hold_seconds=1.80):
     source = overlay(raw, masks, record)
     direction = -1 if sum(map(ord, prefix)) % 2 else 1
 
@@ -227,7 +227,46 @@ def overlay_state(prefix, raw, masks, record, scope_label):
         return frame
 
     frame = make_frame(0.5)
-    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, 1.80, make_frame)
+    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, hold_seconds, make_frame)
+
+
+def context_camera_frame(source, context, center_nm, fov_um_x):
+    """Crop a physical 16:9 camera view from the aligned 1 mm context overlay."""
+    x0, x1, y0, y1 = context["bounds_um_xyxy"]
+    cx, cy = center_nm[0] / 1000.0, center_nm[1] / 1000.0
+    fov_x = min(float(fov_um_x), x1 - x0)
+    fov_y = min(fov_x * HEIGHT / WIDTH, y1 - y0)
+    cx = float(np.clip(cx, x0 + fov_x / 2, x1 - fov_x / 2))
+    cy = float(np.clip(cy, y0 + fov_y / 2, y1 - fov_y / 2))
+    sx0 = int(np.floor((cx - fov_x / 2 - x0) / (x1 - x0) * source.shape[1]))
+    sx1 = int(np.ceil((cx + fov_x / 2 - x0) / (x1 - x0) * source.shape[1]))
+    sy0 = int(np.floor((cy - fov_y / 2 - y0) / (y1 - y0) * source.shape[0]))
+    sy1 = int(np.ceil((cy + fov_y / 2 - y0) / (y1 - y0) * source.shape[0]))
+    crop = source[max(0, sy0):min(source.shape[0], sy1), max(0, sx0):min(source.shape[1], sx1)]
+    if not crop.size:
+        raise RuntimeError("Camera crop is empty")
+    return cv2.resize(crop, (WIDTH, HEIGHT), interpolation=cv2.INTER_CUBIC), fov_x
+
+
+def move_state(index, context_source, context, start_center, end_center, first_move=False):
+    seed = int(context["local_stop_selection"]["seed"])
+
+    def make_frame(progress):
+        u = smoothstep(progress)
+        center = [start_center[axis] * (1.0 - u) + end_center[axis] * u for axis in range(2)]
+        if first_move:
+            fov_x = 900.0 * (1.0 - u) + 200.0 * u
+        else:
+            fov_x = 200.0 * (1.0 + 0.72 * 4.0 * u * (1.0 - u))
+        frame, actual_fov = context_camera_frame(context_source, context, center, fov_x)
+        header(frame, "SEEDED-RANDOM LOCAL TOUR", f"Camera move to local view {index}",
+               f"seed {seed} | selection order {index}/4")
+        footer(frame, "Movement is interpolated in physical coordinates inside the 1 x 1 mm context ROI")
+        draw_scale_bar(frame, (0, 142, WIDTH, HEIGHT - 196), actual_fov, 100 if actual_fov >= 500 else 20)
+        return frame
+
+    return State(f"random-{index:02d}.move", f"Move to random local view {index}",
+                 make_frame(0.5), 2.40, make_frame)
 
 
 def density_visual(raw, density, vmax):
@@ -290,16 +329,17 @@ def build_states(npz, manifest):
             states.append(builder("context", raw, masks, context, "1 x 1 mm context ROI"))
         else:
             states.append(builder("context", raw, densities, context, "1 x 1 mm context ROI"))
-    for region in manifest["regions"]:
+    context["local_stop_selection"] = manifest["local_stop_selection"]
+    context_overlay = overlay(raw, masks, context)
+    previous_center = context["center_nm_xy"]
+    for index, region in enumerate(manifest["regions"], 1):
         prefix = f"detail_{region['id']}"
-        raw, masks, densities = get_assets(npz, prefix)
-        scope = "200 x 112.5 um detail ROI"
-        states.extend((
-            raw_state(prefix, raw, region, scope),
-            masks_state(prefix, raw, masks, region, scope),
-            overlay_state(prefix, raw, masks, region, scope),
-            density_state(prefix, raw, densities, region, scope),
-        ))
+        detail_raw, detail_masks, _ = get_assets(npz, prefix)
+        states.append(move_state(index, context_overlay, context, previous_center,
+                                 region["center_nm_xy"], first_move=index == 1))
+        states.append(overlay_state(prefix, detail_raw, detail_masks, region,
+                                    "Seeded-random 200 x 112.5 um local ROI", 2.55))
+        previous_center = region["center_nm_xy"]
     return states
 
 
@@ -325,6 +365,38 @@ def write_storyboard(states, output):
         row, col = divmod(index, columns)
         sheet[row * thumb_h:(row + 1) * thumb_h, col * thumb_w:(col + 1) * thumb_w] = thumb
     cv2.imwrite(str(output), sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
+
+
+def write_density_comparison(manifest, output):
+    """Summarize occupancy in the four random local fields without anatomy claims."""
+    width, height = 1600, 900
+    frame = np.full((height, width, 3), BG, np.uint8)
+    put(frame, "Seeded-random local occupancy", (54, 72), 1.25, TEXT, 3)
+    seed = manifest["local_stop_selection"]["seed"]
+    put(frame, f"Four local views inside the 1 x 1 mm context | seed {seed}",
+        (56, 116), 0.62, MUTED, 1)
+    values = [region["layers"][key]["density_percent"]
+              for region in manifest["regions"] for key, _ in LAYERS]
+    vmax = max(values + [1.0]) * 1.12
+    chart_x0, chart_x1 = 520, 1510
+    for row, region in enumerate(manifest["regions"]):
+        y0 = 170 + row * 170
+        put(frame, region["label"], (56, y0 + 30), 0.72, TEXT, 2)
+        cx, cy = region["center_nm_xy"]
+        put(frame, f"center ({cx/1000:.1f}, {cy/1000:.1f}) um",
+            (56, y0 + 66), 0.48, MUTED, 1)
+        for index, (key, label) in enumerate(LAYERS):
+            y = y0 + index * 29
+            value = float(region["layers"][key]["density_percent"])
+            color = layer_color_bgr(region, key)
+            bar_end = chart_x0 + round((chart_x1 - chart_x0) * value / vmax)
+            cv2.rectangle(frame, (chart_x0, y + 2), (chart_x1, y + 18), (35, 43, 52), -1)
+            cv2.rectangle(frame, (chart_x0, y + 2), (bar_end, y + 18), color, -1)
+            put(frame, label, (300, y + 17), 0.42, MUTED, 1)
+            put(frame, f"{value:.2f}%", (min(chart_x1 - 72, bar_end + 10), y + 17), 0.42, TEXT, 1)
+        cv2.line(frame, (54, y0 + 145), (1546, y0 + 145), (48, 58, 68), 1)
+    put(frame, "Occupancy = positive mask pixels / valid tissue pixels", (56, 866), 0.50, MUTED, 1)
+    cv2.imwrite(str(output), frame, [cv2.IMWRITE_PNG_COMPRESSION, 3])
 
 
 def render(states, output):
@@ -368,10 +440,7 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = float(cap.get(cv2.CAP_PROP_FPS))
     count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    selected = [item for item in timeline if item["key"].startswith("context.")]
-    selected += [item for item in timeline if not item["key"].startswith("context.") and
-                 item["key"].endswith((".masks", ".overlay", ".density"))]
-    selected = selected[:16]
+    selected = list(timeline)
     decoded, thumbs = [], []
     for item in selected:
         cap.set(cv2.CAP_PROP_POS_FRAMES, item["mid_frame"])
@@ -380,9 +449,9 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         thumbs.append(cv2.resize(frame, (480, 270)) if ok else np.zeros((270, 480, 3), np.uint8))
     motion_differences = {}
     motion_rows = []
-    motion_sheet_keys = {"context.raw", "context.overlay", "detail_cortex.raw", "detail_cortex.overlay"}
+    motion_sheet_keys = {"random-01.move", "random-02.move", "random-03.move", "random-04.move"}
     for item in timeline:
-        if not item["key"].endswith((".raw", ".overlay")):
+        if not item["key"].endswith((".move", ".overlay")):
             continue
         cap.set(cv2.CAP_PROP_POS_FRAMES, item["first_frame"])
         ok0, first = cap.read()
@@ -406,24 +475,39 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
             )
     motion_contact = output_dir / "kidney-local-fields-tour-motion-contact-sheet.jpg"
     cv2.imwrite(str(motion_contact), motion_sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
-    sheet = np.full((1080, 1920, 3), BG, np.uint8)
+    contact_rows = int(np.ceil(len(thumbs) / 4))
+    sheet = np.full((contact_rows * 270, 1920, 3), BG, np.uint8)
     for index, thumb in enumerate(thumbs):
         row, col = divmod(index, 4)
         sheet[row * 270:(row + 1) * 270, col * 480:(col + 1) * 480] = thumb
     contact = output_dir / "kidney-local-fields-tour-contact-sheet.jpg"
     cv2.imwrite(str(contact), sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
 
-    required_suffixes = {".raw", ".masks", ".overlay", ".density"}
     timeline_keys = {item["key"] for item in timeline}
+    context_bounds = manifest["context"]["bounds_um_xyxy"]
+    random_centers_inside = all(
+        context_bounds[0] <= region["center_nm_xy"][0] / 1000 <= context_bounds[1] and
+        context_bounds[2] <= region["center_nm_xy"][1] / 1000 <= context_bounds[3]
+        for region in manifest["regions"]
+    )
+    move_keys = [key for key in timeline_keys if key.endswith(".move")]
     checks = {
         "dimensions_1920x1080": (width, height) == (WIDTH, HEIGHT),
         "fps_24": abs(fps - FPS) < 0.05,
         "frame_count": count == expected_frames,
         "all_selected_keyframes_decoded": all(decoded),
         "one_1x1_mm_context": manifest["context"]["fov_um_xy"] == [1000.0, 1000.0],
-        "four_detail_rois": len(manifest["regions"]) == 4,
-        "all_story_stages_present": all(any(key.endswith(suffix) for key in timeline_keys)
-                                          for suffix in required_suffixes),
+        "context_segmentation_then_density": all(key in timeline_keys for key in (
+            "context.masks", "context.overlay", "context.density")),
+        "four_seeded_random_detail_rois": (
+            len(manifest["regions"]) == 4 and
+            manifest["local_stop_selection"]["mode"] == "seeded_random" and
+            isinstance(manifest["local_stop_selection"]["seed"], int)
+        ),
+        "random_centers_inside_context": random_centers_inside,
+        "no_invented_anatomical_region_names": all(
+            region["label"].startswith("Random local view") for region in manifest["regions"]),
+        "four_visible_camera_moves": len(move_keys) == 4,
         "four_masks_present": all(key in manifest["context"]["layers"] for key, _ in LAYERS),
         "smooth_camera_motion_present": bool(motion_differences) and
                                           all(value > 0.5 for value in motion_differences.values()),
@@ -437,14 +521,27 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         "frame_count": count,
         "duration_seconds": count / fps if fps else None,
         "sha256": sha256(video),
-        "scope": "one 1 x 1 mm context ROI plus four 200 x 112.5 um detail ROIs; no whole-kidney frame",
+        "scope": "1 x 1 mm segmentation/density context followed by four seeded-random 200 x 112.5 um local views",
         "layers": [label for _, label in LAYERS],
         "density_method": manifest["density_method"],
         "camera_motion": {
-            "easing": "smoothstep", "push_in_percent": 4.5,
+            "easing": "smoothstep", "first_move_fov_um": "900 -> 200",
+            "between_view_midpoint_zoom_out_percent": 72,
+            "local_hold_push_in_percent": 4.5,
             "pan_fraction_of_frame": 0.012,
-            "applied_to": "raw and aligned combined-overlay composites",
+            "applied_to": "aligned combined-overlay composites",
             "motion_mean_absolute_frame_differences": motion_differences,
+        },
+        "local_stop_selection": manifest["local_stop_selection"],
+        "local_views": [{
+            "id": region["id"], "label": region["label"],
+            "center_nm_xy": region["center_nm_xy"],
+            "bounds_um_xyxy": region["bounds_um_xyxy"],
+            "selection_candidate_index": region["selection_candidate_index"],
+            "selection_tissue_fraction": region["selection_tissue_fraction"],
+        } for region in manifest["regions"]],
+        "source_info_sha256": {
+            dataset: record["info_sha256"] for dataset, record in manifest["sources"].items()
         },
         "selected_keyframes": [item["key"] for item in selected],
         "motion_contact_sheet": motion_contact.name,
@@ -476,6 +573,7 @@ def main():
     with np.load(args.assets) as npz:
         states = build_states(npz, manifest)
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    write_density_comparison(manifest, args.output.with_name("local-region-density-comparison.png"))
     storyboard = args.output.with_name("kidney-local-fields-tour-storyboard.jpg")
     write_storyboard(states, storyboard)
     frame_count, timeline = render(states, args.output)

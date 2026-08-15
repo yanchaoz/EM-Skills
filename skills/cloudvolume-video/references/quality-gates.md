@@ -24,12 +24,16 @@ Read this file completely before approving a storyboard, starting a formal rende
 
 ## Gate 2: storyboard approval
 
-- [ ] Opening frame identifies the specimen or local anatomical region and its physical field of view.
+- [ ] Opening frame identifies the specimen or bounded context and its physical field of view.
+- [ ] A requested 1 x 1 mm context is exactly that physical size and is not replaced by a whole-organ frame.
 - [ ] Each isolated overlay uses the requested color and opacity.
 - [ ] Each isolated overlay is immediately followed by its density map.
 - [ ] Density is mask area divided by valid tissue area in physical bins.
 - [ ] Combined view contains exactly the approved layers.
-- [ ] Four representative fields are tissue-rich and ordered along the intended path.
+- [ ] Requested random fields use a recorded seed, stay inside the context ROI, meet tissue/margin rules, and retain random order.
+- [ ] Random fields are not relabeled as anatomical or representative regions.
+- [ ] Segmentation/density stages are not redundantly repeated at each random stop unless requested.
+- [ ] Four requested camera moves are visible spatial motion rather than crossfades.
 - [ ] Fine labels align with EM structures in every representative field.
 - [ ] Coordinates and scale bars are readable at final 1920x1080 size.
 - [ ] Camera entry, hold, and move keyframes stay within bounded source data.
