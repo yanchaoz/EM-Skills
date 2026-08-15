@@ -122,12 +122,13 @@ Zarr, or N5, first prepare a derived Neuroglancer precomputed source using its
 declared axes and voxel size, verify exact readback, and generate a viewer
 handoff; skip conversion for existing precomputed inputs. Audit physical
 alignment, then use a bounded 1 x 1 mm context ROI. At that same context,
-show the segmentation results and density maps in sequence. With a recorded
-seed, randomly select four tissue-valid 200 x 112.5 um fields inside the
-context; visibly move the camera to each field and hold on the combined
-overlay. Do not rename random fields as anatomical regions and do not repeat
-all context stages at every stop. Keep raw and masks locked to one physical
-transform. If valid 3D mesh
+show the segmentation results, followed by one full-size density map per
+structure. Keep every global result and local review hold completely still.
+With a recorded seed, randomly select four tissue-valid 200 x 112.5 um fields
+inside the context; visibly move the camera only between fields and hold on the
+combined overlay. Do not rename random fields as anatomical regions and do not
+repeat all context stages at every stop. Keep raw and masks locked to one
+physical transform. If valid 3D mesh
 metadata exist, export the requested segment IDs and make a verified turntable.
 ```
 
@@ -187,13 +188,13 @@ The queue remains a human-review draft; embedding coverage alone does not prove 
 
 ### CloudVolume video: kidney local fields
 
-The presentation uses a bounded **1 x 1 mm** context ROI for the segmentation and density stages, then visibly moves to four seeded-random **200 x 112.5 um** local overlay views inside that context. Random stops retain neutral labels rather than inferred anatomical identities. Density reports predicted structure occupancy, not ground-truth accuracy.
+The presentation uses a bounded **1 x 1 mm** context ROI, shows four structure-density maps one by one at full context scale, then visibly moves to four seeded-random **200 x 112.5 um** local overlay views. Global and local review holds are locked; motion occurs only between views. Random stops retain neutral labels rather than inferred anatomical identities. Density reports predicted structure occupancy, not ground-truth accuracy.
 
 | Verified video keyframes | Seeded-random local occupancy |
 | --- | --- |
 | ![Kidney video mask, overlay, and density keyframes](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour-contact-sheet.jpg) | ![Kidney local density comparison](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
 
-[▶ Watch or download the verified 30.5-second, 1080p kidney context-to-random-local video](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
+[▶ Watch or download the verified 38-second, 1080p kidney context-to-random-local video](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
 
 This single-section kidney source is not presented as a true 3D mesh. Mesh retrieval, bounded label-to-mesh extraction, complete PLY export, headless turntable rendering, and video verification are covered separately by the Skill tests. [Complete local-field record](examples/kidney-local-cloudvolume-video/README.md)
 

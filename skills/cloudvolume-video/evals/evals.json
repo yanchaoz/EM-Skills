@@ -50,7 +50,7 @@
     {
       "id": "one-mm-random-local-tour",
       "prompt": "Show segmentation results and density maps over a 1 x 1 mm kidney field, then move the camera to four random local fields.",
-      "expected": ["uses one bounded 1 x 1 mm context", "shows segmentation then density at matching context coordinates", "uses a recorded seeded-random selection rather than representative fields", "keeps all four local fovs inside the context", "shows four visible physical-coordinate moves", "does not invent cortex medulla or papilla names", "does not repeat every context stage at each local stop"]
+      "expected": ["uses one bounded 1 x 1 mm context", "shows every structure density map as a separate full-size context hold at matching coordinates", "keeps global and local review holds pixel-stable", "uses a recorded seeded-random selection rather than representative fields", "keeps all four local fovs inside the context", "shows four visible physical-coordinate moves only between holds", "does not invent cortex medulla or papilla names", "does not repeat every context stage at each local stop"]
     }
   ]
 }

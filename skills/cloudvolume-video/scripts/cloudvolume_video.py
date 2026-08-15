@@ -19,8 +19,8 @@ from urllib.parse import quote
 DEFAULT_CAMERA = {
     "easing": "smootherstep",
     "entry_start_fov_multiplier": 1.40,
-    "hold_pan_fraction": 0.035,
-    "hold_zoom_fraction": 0.06,
+    "hold_pan_fraction": 0.0,
+    "hold_zoom_fraction": 0.0,
     "transition_zoom_out_fraction": 0.16,
 }
 
@@ -143,7 +143,7 @@ def easing_value(name, x):
 
 
 def _hold_pose(stops, index, progress, base_fov_nm, camera):
-    """Create a continuous slow push-in plus restrained pan for one hold."""
+    """Return a review pose; defaults keep every scientific hold pixel-stable."""
     u = easing_value(camera["easing"], progress)
     directions = ((1.0, -0.36), (-0.72, 0.62), (0.45, 0.82), (-1.0, -0.28))
     dx, dy = directions[index % len(directions)]

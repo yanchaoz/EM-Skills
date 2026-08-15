@@ -198,7 +198,12 @@ def main():
     manifest = {
         "description": "Bounded kidney CloudVolume assets for mask, overlay, and local-density video.",
         "presentation_scope": "1 x 1 mm segmentation/density context followed by four seeded-random local views",
-        "story_sequence": ["context.raw", "context.masks", "context.overlay", "context.density", "four_local_camera_moves"],
+        "story_sequence": [
+            "context.raw", "context.masks", "context.overlay",
+            "context.density.nuclei", "context.density.mitochondria",
+            "context.density.basement_membrane", "context.density.lysosomes",
+            "four_local_camera_moves_with_locked_holds",
+        ],
         "local_stop_selection": {
             "mode": "seeded_random", "seed": args.seed, "count": args.random_count,
             "min_center_distance_um": args.min_center_distance_um,

@@ -73,26 +73,6 @@ def fit_image(image, width, height, background=BG):
     return canvas, (x, y, nw, nh)
 
 
-def cinematic_fit(image, width, height, progress, direction=1, background=BG):
-    """Apply a subtle eased push-in and pan inside a fixed presentation box."""
-    ih, iw = image.shape[:2]
-    eased = smoothstep(progress)
-    zoom = 1.0 + 0.045 * eased
-    scale = min(width / iw, height / ih) * zoom
-    nw, nh = max(1, round(iw * scale)), max(1, round(ih * scale))
-    resized = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_CUBIC)
-    pan_x = round(direction * (2.0 * eased - 1.0) * min(width, nw) * 0.012)
-    pan_y = round((2.0 * eased - 1.0) * min(height, nh) * 0.006)
-    x, y = (width - nw) // 2 + pan_x, (height - nh) // 2 + pan_y
-    canvas = np.full((height, width, 3), background, np.uint8)
-    dx0, dy0 = max(0, x), max(0, y)
-    dx1, dy1 = min(width, x + nw), min(height, y + nh)
-    if dx1 > dx0 and dy1 > dy0:
-        sx0, sy0 = dx0 - x, dy0 - y
-        canvas[dy0:dy1, dx0:dx1] = resized[sy0:sy0 + dy1 - dy0, sx0:sx0 + dx1 - dx0]
-    return canvas, (x, y, nw, nh), zoom
-
-
 def state_frame(state, progress):
     return state.render_fn(progress) if state.render_fn is not None else state.frame
 
@@ -136,34 +116,28 @@ def draw_scale_bar(frame, image_box, fov_um_x, bar_um):
 
 def raw_state(prefix, raw, record, scope_label):
     source = gray_bgr(raw)
-    direction = 1 if sum(map(ord, prefix)) % 2 else -1
-
-    def make_frame(progress):
-        frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
-        image, box, zoom = cinematic_fit(source, 1370, 870, progress, direction)
-        frame[156:1026, :1370] = image
-        translucent_rect(frame, (1400, 174), (1880, 954), alpha=0.95)
-        put(frame, "FIELD OF VIEW", (1440, 230), 0.50, ACCENT, 2)
-        fw, fh = record["fov_um_xy"]
-        put(frame, f"{fw:g} x {fh:g} um", (1440, 282), 0.87, TEXT, 2)
-        put(frame, "SAMPLING", (1440, 365), 0.50, ACCENT, 2)
-        rx, ry = record["resolution_nm_xy"]
-        put(frame, f"{rx:g} x {ry:g} nm/px", (1440, 417), 0.78, TEXT, 2)
-        put(frame, "PHYSICAL BOUNDS", (1440, 500), 0.50, ACCENT, 2)
-        x0, x1, y0, y1 = record["bounds_um_xyxy"]
-        put(frame, f"x  {x0/1000:.3f}-{x1/1000:.3f} mm", (1440, 553), 0.66, TEXT, 2)
-        put(frame, f"y  {y0/1000:.3f}-{y1/1000:.3f} mm", (1440, 595), 0.66, TEXT, 2)
-        put(frame, "CAMERA", (1440, 678), 0.50, ACCENT, 2)
-        put(frame, "Eased push-in + subtle pan", (1440, 730), 0.57, TEXT, 1)
-        put(frame, "No whole-organ frame", (1440, 775), 0.63, MUTED, 2)
-        local_box = (box[0], 156 + box[1], box[2], box[3])
-        draw_scale_bar(frame, local_box, fw / zoom, 200 if fw >= 1000 else 20)
-        header(frame, scope_label, record["label"], "Raw EM | smooth camera hold")
-        footer(frame)
-        return frame
-
-    frame = make_frame(0.5)
-    return State(f"{prefix}.raw", f"{record['label']} - raw", frame, 1.65, make_frame)
+    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
+    image, box = fit_image(source, 1370, 870)
+    frame[156:1026, :1370] = image
+    translucent_rect(frame, (1400, 174), (1880, 954), alpha=0.95)
+    put(frame, "FIELD OF VIEW", (1440, 230), 0.50, ACCENT, 2)
+    fw, fh = record["fov_um_xy"]
+    put(frame, f"{fw:g} x {fh:g} um", (1440, 282), 0.87, TEXT, 2)
+    put(frame, "SAMPLING", (1440, 365), 0.50, ACCENT, 2)
+    rx, ry = record["resolution_nm_xy"]
+    put(frame, f"{rx:g} x {ry:g} nm/px", (1440, 417), 0.78, TEXT, 2)
+    put(frame, "PHYSICAL BOUNDS", (1440, 500), 0.50, ACCENT, 2)
+    x0, x1, y0, y1 = record["bounds_um_xyxy"]
+    put(frame, f"x  {x0/1000:.3f}-{x1/1000:.3f} mm", (1440, 553), 0.66, TEXT, 2)
+    put(frame, f"y  {y0/1000:.3f}-{y1/1000:.3f} mm", (1440, 595), 0.66, TEXT, 2)
+    put(frame, "CAMERA", (1440, 678), 0.50, ACCENT, 2)
+    put(frame, "Locked during review", (1440, 730), 0.60, TEXT, 1)
+    put(frame, "No whole-organ frame", (1440, 775), 0.63, MUTED, 2)
+    local_box = (box[0], 156 + box[1], box[2], box[3])
+    draw_scale_bar(frame, local_box, fw, 200 if fw >= 1000 else 20)
+    header(frame, scope_label, record["label"], "Raw EM | locked review hold")
+    footer(frame)
+    return State(f"{prefix}.raw", f"{record['label']} - raw", frame, 1.65)
 
 
 def mask_panel(raw, mask, record, key, label, bounds):
@@ -208,26 +182,21 @@ def legend_card(frame, record, x0=1420, y0=210):
 
 def overlay_state(prefix, raw, masks, record, scope_label, hold_seconds=1.80):
     source = overlay(raw, masks, record)
-    direction = -1 if sum(map(ord, prefix)) % 2 else 1
-
-    def make_frame(progress):
-        frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
-        image, box, zoom = cinematic_fit(source, 1370, 870, progress, direction)
-        frame[156:1026, :1370] = image
-        translucent_rect(frame, (1400, 174), (1884, 954), alpha=0.95)
-        legend_card(frame, record)
-        put(frame, "INTERPRETATION", (1420, 708), 0.50, ACCENT, 2)
-        put(frame, "One transform preserves", (1420, 758), 0.54, TEXT, 1)
-        put(frame, "raw-mask alignment.", (1420, 796), 0.54, TEXT, 1)
-        fw = record["fov_um_xy"][0]
-        local_box = (box[0], 156 + box[1], box[2], box[3])
-        draw_scale_bar(frame, local_box, fw / zoom, 200 if fw >= 1000 else 20)
-        header(frame, scope_label, record["label"], "Combined overlay | locked camera transform")
-        footer(frame)
-        return frame
-
-    frame = make_frame(0.5)
-    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, hold_seconds, make_frame)
+    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
+    image, box = fit_image(source, 1370, 870)
+    frame[156:1026, :1370] = image
+    translucent_rect(frame, (1400, 174), (1884, 954), alpha=0.95)
+    legend_card(frame, record)
+    put(frame, "INTERPRETATION", (1420, 708), 0.50, ACCENT, 2)
+    put(frame, "One transform preserves", (1420, 758), 0.54, TEXT, 1)
+    put(frame, "raw-mask alignment.", (1420, 796), 0.54, TEXT, 1)
+    put(frame, "Hold remains pixel-stable.", (1420, 850), 0.50, MUTED, 1)
+    fw = record["fov_um_xy"][0]
+    local_box = (box[0], 156 + box[1], box[2], box[3])
+    draw_scale_bar(frame, local_box, fw, 200 if fw >= 1000 else 20)
+    header(frame, scope_label, record["label"], "Combined overlay | locked review hold")
+    footer(frame)
+    return State(f"{prefix}.overlay", f"{record['label']} - overlay", frame, hold_seconds)
 
 
 def context_camera_frame(source, context, center_nm, fov_um_x):
@@ -279,36 +248,40 @@ def density_visual(raw, density, vmax):
     return np.clip(background * (1.0 - alpha) + colored * alpha, 0, 255).astype(np.uint8)
 
 
-def density_panel(raw, density, record, key, label, width, height):
+def density_state(prefix, raw, density, record, key, label, scope_label):
     positive = density[density > 0]
     vmax = float(np.percentile(positive, 99)) if positive.size else 1.0
     vmax = max(vmax, float(record["layers"][key]["density_percent"]), 0.1)
-    visual = density_visual(raw, density, vmax)
-    fitted, _ = fit_image(visual, width, height, background=(17, 22, 28))
-    translucent_rect(fitted, (0, 0), (width, 92), color=(12, 16, 22), alpha=0.90)
-    put(fitted, label, (28, 42), 0.75, TEXT, 2)
+    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
+    image, box = fit_image(density_visual(raw, density, vmax), 1370, 870,
+                           background=(17, 22, 28))
+    frame[156:1026, :1370] = image
+    translucent_rect(frame, (1400, 174), (1884, 954), alpha=0.95)
+    color = layer_color_bgr(record, key)
+    cv2.rectangle(frame, (1430, 212), (1472, 254), color, -1)
+    put(frame, label, (1490, 248), 0.72, TEXT, 2)
+    put(frame, "CONTEXT OCCUPANCY", (1430, 342), 0.48, ACCENT, 2)
+    occupancy = float(record["layers"][key]["density_percent"])
+    put(frame, f"{occupancy:.2f}%", (1430, 400), 0.92, TEXT, 2)
+    put(frame, "DENSITY GRID", (1430, 500), 0.48, ACCENT, 2)
     bin_um = record["layers"][key]["density_bin_um"]
-    put(fitted, f"local density | {bin_um:g} um bins | scale 0-{vmax:.1f}%", (28, 76), 0.47, MUTED, 1)
-    bar_x0, bar_x1, bar_y0, bar_y1 = width - 228, width - 28, 27, 48
+    put(frame, f"{bin_um:g} um physical bins", (1430, 548), 0.58, TEXT, 1)
+    put(frame, "DISPLAY RANGE", (1430, 644), 0.48, ACCENT, 2)
+    put(frame, f"0-{vmax:.1f}%", (1430, 694), 0.66, TEXT, 2)
+    bar_x0, bar_x1, bar_y0, bar_y1 = 1430, 1830, 730, 760
     gradient = np.arange(256, dtype=np.uint8)[None, :]
     gradient = cv2.resize(gradient, (bar_x1 - bar_x0, bar_y1 - bar_y0))
     gradient = cv2.applyColorMap(gradient, cv2.COLORMAP_TURBO)
-    fitted[bar_y0:bar_y1, bar_x0:bar_x1] = gradient
-    cv2.rectangle(fitted, (bar_x0, bar_y0), (bar_x1, bar_y1), TEXT, 1)
-    return fitted
-
-
-def density_state(prefix, raw, densities, record, scope_label):
-    frame = np.full((HEIGHT, WIDTH, 3), BG, np.uint8)
-    panel_w, panel_h = 924, 430
-    origins = ((24, 156), (972, 156), (24, 608), (972, 608))
-    for (key, label), (x, y) in zip(LAYERS, origins):
-        panel = density_panel(raw, densities[key], record, key, label, panel_w, panel_h)
-        frame[y:y + panel_h, x:x + panel_w] = panel
-        cv2.rectangle(frame, (x, y), (x + panel_w - 1, y + panel_h - 1), (58, 70, 82), 2)
-    header(frame, scope_label, record["label"], "Local structure-density maps")
+    frame[bar_y0:bar_y1, bar_x0:bar_x1] = gradient
+    cv2.rectangle(frame, (bar_x0, bar_y0), (bar_x1, bar_y1), TEXT, 1)
+    fw = record["fov_um_xy"][0]
+    local_box = (box[0], 156 + box[1], box[2], box[3])
+    draw_scale_bar(frame, local_box, fw, 200 if fw >= 1000 else 20)
+    header(frame, scope_label, f"{label} density",
+           "Full-size context map | locked review hold")
     footer(frame, "Density = positive structure pixels / valid tissue pixels | display smoothing: sigma 0.8 bins")
-    return State(f"{prefix}.density", f"{record['label']} - density", frame, 1.85)
+    return State(f"{prefix}.density.{key}", f"{record['label']} - {label} density",
+                 frame, 2.10)
 
 
 def get_assets(npz, prefix):
@@ -322,13 +295,12 @@ def build_states(npz, manifest):
     states = []
     raw, masks, densities = get_assets(npz, "context")
     context = manifest["context"]
-    for builder in (raw_state, masks_state, overlay_state, density_state):
-        if builder is raw_state:
-            states.append(builder("context", raw, context, "1 x 1 mm context ROI"))
-        elif builder is masks_state or builder is overlay_state:
-            states.append(builder("context", raw, masks, context, "1 x 1 mm context ROI"))
-        else:
-            states.append(builder("context", raw, densities, context, "1 x 1 mm context ROI"))
+    states.append(raw_state("context", raw, context, "1 x 1 mm context ROI"))
+    states.append(masks_state("context", raw, masks, context, "1 x 1 mm context ROI"))
+    states.append(overlay_state("context", raw, masks, context, "1 x 1 mm context ROI"))
+    for key, label in LAYERS:
+        states.append(density_state("context", raw, densities[key], context, key,
+                                    label, "1 x 1 mm context ROI"))
     context["local_stop_selection"] = manifest["local_stop_selection"]
     context_overlay = overlay(raw, masks, context)
     previous_center = context["center_nm_xy"]
@@ -448,24 +420,37 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         decoded.append(bool(ok))
         thumbs.append(cv2.resize(frame, (480, 270)) if ok else np.zeros((270, 480, 3), np.uint8))
     motion_differences = {}
+    static_hold_differences = {}
+    static_hold_shifts_px = {}
     motion_rows = []
     motion_sheet_keys = {"random-01.move", "random-02.move", "random-03.move", "random-04.move"}
     for item in timeline:
-        if not item["key"].endswith((".move", ".overlay")):
-            continue
         cap.set(cv2.CAP_PROP_POS_FRAMES, item["first_frame"])
         ok0, first = cap.read()
+        cap.set(cv2.CAP_PROP_POS_FRAMES, item["mid_frame"])
+        okm, middle = cap.read()
         cap.set(cv2.CAP_PROP_POS_FRAMES, item["last_frame"])
         ok1, last = cap.read()
-        motion_differences[item["key"]] = (
-            float(np.mean(np.abs(first.astype(np.float32) - last.astype(np.float32))))
-            if ok0 and ok1 else 0.0
-        )
-        if item["key"] in motion_sheet_keys and ok0 and ok1:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, item["mid_frame"])
-            okm, middle = cap.read()
-            if okm:
+        if item["key"].endswith(".move"):
+            motion_differences[item["key"]] = (
+                float(np.mean(np.abs(first.astype(np.float32) - last.astype(np.float32))))
+                if ok0 and ok1 else 0.0
+            )
+            if item["key"] in motion_sheet_keys and ok0 and okm and ok1:
                 motion_rows.append((first, middle, last))
+        elif ok0 and okm and ok1:
+            static_hold_differences[item["key"]] = max(
+                float(np.mean(np.abs(first.astype(np.float32) - middle.astype(np.float32)))),
+                float(np.mean(np.abs(middle.astype(np.float32) - last.astype(np.float32)))),
+            )
+            gray = [cv2.GaussianBlur(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(np.float32),
+                                     (0, 0), 2.0)
+                    for frame in (first, middle, last)]
+            shifts = [cv2.phaseCorrelate(a, b)[0]
+                      for a, b in ((gray[0], gray[1]), (gray[1], gray[2]))]
+            static_hold_shifts_px[item["key"]] = [
+                [float(shift[0]), float(shift[1])] for shift in shifts
+            ]
     cap.release()
     motion_sheet = np.full((len(motion_rows) * 360, 1920, 3), BG, np.uint8)
     for row, frames in enumerate(motion_rows):
@@ -484,6 +469,7 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
     cv2.imwrite(str(contact), sheet, [cv2.IMWRITE_JPEG_QUALITY, 94])
 
     timeline_keys = {item["key"] for item in timeline}
+    timeline_order = [item["key"] for item in timeline]
     context_bounds = manifest["context"]["bounds_um_xyxy"]
     random_centers_inside = all(
         context_bounds[0] <= region["center_nm_xy"][0] / 1000 <= context_bounds[1] and
@@ -491,14 +477,25 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         for region in manifest["regions"]
     )
     move_keys = [key for key in timeline_keys if key.endswith(".move")]
+    density_keys = [f"context.density.{key}" for key, _ in LAYERS]
+    density_indices = [timeline_order.index(key) for key in density_keys
+                       if key in timeline_keys]
+    context_overlay_index = timeline_order.index("context.overlay")
+    first_move_index = timeline_order.index("random-01.move")
+    density_sequence_ok = (
+        len(density_indices) == len(LAYERS) and
+        context_overlay_index < min(density_indices) and
+        max(density_indices) < first_move_index
+    )
     checks = {
         "dimensions_1920x1080": (width, height) == (WIDTH, HEIGHT),
         "fps_24": abs(fps - FPS) < 0.05,
         "frame_count": count == expected_frames,
         "all_selected_keyframes_decoded": all(decoded),
         "one_1x1_mm_context": manifest["context"]["fov_um_xy"] == [1000.0, 1000.0],
-        "context_segmentation_then_density": all(key in timeline_keys for key in (
-            "context.masks", "context.overlay", "context.density")),
+        "four_full_size_context_density_holds": (
+            all(key in timeline_keys for key in density_keys) and density_sequence_ok
+        ),
         "four_seeded_random_detail_rois": (
             len(manifest["regions"]) == 4 and
             manifest["local_stop_selection"]["mode"] == "seeded_random" and
@@ -511,6 +508,10 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         "four_masks_present": all(key in manifest["context"]["layers"] for key, _ in LAYERS),
         "smooth_camera_motion_present": bool(motion_differences) and
                                           all(value > 0.5 for value in motion_differences.values()),
+        "all_global_and_local_holds_geometrically_locked": bool(static_hold_shifts_px) and all(
+            max(abs(axis) for shift in shifts for axis in shift) <= 0.15
+            for shifts in static_hold_shifts_px.values()
+        ),
     }
     report = {
         "video": Path(video).name,
@@ -527,10 +528,13 @@ def verify(video, expected_frames, timeline, manifest, output_dir):
         "camera_motion": {
             "easing": "smoothstep", "first_move_fov_um": "900 -> 200",
             "between_view_midpoint_zoom_out_percent": 72,
-            "local_hold_push_in_percent": 4.5,
-            "pan_fraction_of_frame": 0.012,
+            "local_hold_push_in_percent": 0.0,
+            "pan_fraction_of_frame": 0.0,
             "applied_to": "aligned combined-overlay composites",
             "motion_mean_absolute_frame_differences": motion_differences,
+            "static_hold_mean_absolute_frame_differences": static_hold_differences,
+            "static_hold_phase_correlation_shifts_px": static_hold_shifts_px,
+            "static_hold_shift_tolerance_px": 0.15,
         },
         "local_stop_selection": manifest["local_stop_selection"],
         "local_views": [{

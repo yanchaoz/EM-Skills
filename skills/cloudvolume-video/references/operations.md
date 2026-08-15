@@ -59,6 +59,10 @@ If repeated use justifies a derived pyramid, create it under the output root and
 
 Do not turn random stops into representative fields or attach anatomical names without provenance. Record X/Y ranges, selection mode, seed when applicable, and FOV on every hold.
 
+Keep global and local review holds fixed. Put camera translation and optional
+zoom-out only in the transition interval; a continuous drift during a review
+hold makes boundary comparison harder and may look like stabilization failure.
+
 ## Mesh operations
 
 - Query existing precomputed mesh metadata before generating a new surface.

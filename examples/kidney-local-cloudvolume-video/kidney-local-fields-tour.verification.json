@@ -4,9 +4,9 @@
   "width": 1920,
   "height": 1080,
   "fps": 24.0,
-  "frame_count": 732,
-  "duration_seconds": 30.5,
-  "sha256": "482bd8623c28db17cb73853c472d11988356619ce59f3680d6031640cc00bce8",
+  "frame_count": 912,
+  "duration_seconds": 38.0,
+  "sha256": "ac8c4766bb67f9bb0d3469d54ad3646f19e008dd56ae6593b855816ab33060de",
   "scope": "1 x 1 mm segmentation/density context followed by four seeded-random 200 x 112.5 um local views",
   "layers": [
     "Nuclei",
@@ -19,20 +19,141 @@
     "easing": "smoothstep",
     "first_move_fov_um": "900 -> 200",
     "between_view_midpoint_zoom_out_percent": 72,
-    "local_hold_push_in_percent": 4.5,
-    "pan_fraction_of_frame": 0.012,
+    "local_hold_push_in_percent": 0.0,
+    "pan_fraction_of_frame": 0.0,
     "applied_to": "aligned combined-overlay composites",
     "motion_mean_absolute_frame_differences": {
-      "context.overlay": 22.716466903686523,
-      "random-01.move": 52.022010803222656,
-      "detail_random-01.overlay": 24.05710220336914,
-      "random-02.move": 67.08777618408203,
-      "detail_random-02.overlay": 28.226882934570312,
-      "random-03.move": 72.77220916748047,
-      "detail_random-03.overlay": 34.36375427246094,
-      "random-04.move": 63.13129806518555,
-      "detail_random-04.overlay": 29.935197830200195
-    }
+      "random-01.move": 52.62247848510742,
+      "random-02.move": 67.42919158935547,
+      "random-03.move": 72.68070983886719,
+      "random-04.move": 63.04835891723633
+    },
+    "static_hold_mean_absolute_frame_differences": {
+      "context.raw": 0.023155542090535164,
+      "context.masks": 0.10912535339593887,
+      "context.overlay": 0.16193142533302307,
+      "context.density.nuclei": 0.08335214108228683,
+      "context.density.mitochondria": 0.6742420792579651,
+      "context.density.basement_membrane": 0.1370040774345398,
+      "context.density.lysosomes": 0.08493055403232574,
+      "detail_random-01.overlay": 3.2752063274383545,
+      "detail_random-02.overlay": 0.9194515347480774,
+      "detail_random-03.overlay": 0.5953041315078735,
+      "detail_random-04.overlay": 0.8771820068359375
+    },
+    "static_hold_phase_correlation_shifts_px": {
+      "context.raw": [
+        [
+          -0.0006021717556450312,
+          -0.1032042286444721
+        ],
+        [
+          0.0011326998015874779,
+          -6.876449037918064e-05
+        ]
+      ],
+      "context.masks": [
+        [
+          0.000309834585777935,
+          -0.0007507692882882111
+        ],
+        [
+          -0.00012305494794873084,
+          5.2242399760871194e-05
+        ]
+      ],
+      "context.overlay": [
+        [
+          -0.00013112517126501189,
+          0.000849106434316127
+        ],
+        [
+          0.0007735381630027405,
+          -0.0009291997261016149
+        ]
+      ],
+      "context.density.nuclei": [
+        [
+          0.0001997757185563387,
+          0.0025898883105810455
+        ],
+        [
+          0.00022408274048757448,
+          -0.0001792589918068188
+        ]
+      ],
+      "context.density.mitochondria": [
+        [
+          7.238811099341547e-05,
+          4.78395354548411e-05
+        ],
+        [
+          -0.0005189866967612033,
+          0.0009891426284411864
+        ]
+      ],
+      "context.density.basement_membrane": [
+        [
+          -0.00021567297790170414,
+          -0.0002790652305293406
+        ],
+        [
+          0.00043906835003326705,
+          -0.00027928171732582996
+        ]
+      ],
+      "context.density.lysosomes": [
+        [
+          -0.0003301629172938192,
+          -0.0002492168008529916
+        ],
+        [
+          0.000308261022496481,
+          0.00015528533924680232
+        ]
+      ],
+      "detail_random-01.overlay": [
+        [
+          -0.0005238912044660538,
+          0.0001833271320492713
+        ],
+        [
+          0.0035281351737239675,
+          0.0014001908245973027
+        ]
+      ],
+      "detail_random-02.overlay": [
+        [
+          -0.0009738085580011102,
+          -0.0029944814750706428
+        ],
+        [
+          0.0005308337209726233,
+          0.0018043674863292836
+        ]
+      ],
+      "detail_random-03.overlay": [
+        [
+          0.005067384329777269,
+          0.004200511387011829
+        ],
+        [
+          0.0008260986295454131,
+          0.0012980553453871835
+        ]
+      ],
+      "detail_random-04.overlay": [
+        [
+          0.004047393564860613,
+          -0.0024733722033261074
+        ],
+        [
+          -3.6229448141966714e-05,
+          -0.00015424357422944013
+        ]
+      ]
+    },
+    "static_hold_shift_tolerance_px": 0.15
   },
   "local_stop_selection": {
     "mode": "seeded_random",
@@ -119,7 +240,10 @@
     "context.raw",
     "context.masks",
     "context.overlay",
-    "context.density",
+    "context.density.nuclei",
+    "context.density.mitochondria",
+    "context.density.basement_membrane",
+    "context.density.lysosomes",
     "random-01.move",
     "detail_random-01.overlay",
     "random-02.move",
@@ -136,13 +260,14 @@
     "frame_count": true,
     "all_selected_keyframes_decoded": true,
     "one_1x1_mm_context": true,
-    "context_segmentation_then_density": true,
+    "four_full_size_context_density_holds": true,
     "four_seeded_random_detail_rois": true,
     "random_centers_inside_context": true,
     "no_invented_anatomical_region_names": true,
     "four_visible_camera_moves": true,
     "four_masks_present": true,
-    "smooth_camera_motion_present": true
+    "smooth_camera_motion_present": true,
+    "all_global_and_local_holds_geometrically_locked": true
   },
   "ok": true,
   "timeline": [
@@ -168,67 +293,88 @@
       "mid_frame": 118
     },
     {
-      "key": "context.density",
-      "title": "Kidney 1 mm context - density",
+      "key": "context.density.nuclei",
+      "title": "Kidney 1 mm context - Nuclei density",
       "first_frame": 148,
-      "last_frame": 191,
-      "mid_frame": 169
+      "last_frame": 197,
+      "mid_frame": 172
+    },
+    {
+      "key": "context.density.mitochondria",
+      "title": "Kidney 1 mm context - Mitochondria density",
+      "first_frame": 206,
+      "last_frame": 255,
+      "mid_frame": 230
+    },
+    {
+      "key": "context.density.basement_membrane",
+      "title": "Kidney 1 mm context - Basement membrane density",
+      "first_frame": 264,
+      "last_frame": 313,
+      "mid_frame": 288
+    },
+    {
+      "key": "context.density.lysosomes",
+      "title": "Kidney 1 mm context - Lysosomes density",
+      "first_frame": 322,
+      "last_frame": 371,
+      "mid_frame": 346
     },
     {
       "key": "random-01.move",
       "title": "Move to random local view 1",
-      "first_frame": 200,
-      "last_frame": 257,
-      "mid_frame": 228
+      "first_frame": 380,
+      "last_frame": 437,
+      "mid_frame": 408
     },
     {
       "key": "detail_random-01.overlay",
       "title": "Random local view 1 - overlay",
-      "first_frame": 266,
-      "last_frame": 326,
-      "mid_frame": 296
+      "first_frame": 446,
+      "last_frame": 506,
+      "mid_frame": 476
     },
     {
       "key": "random-02.move",
       "title": "Move to random local view 2",
-      "first_frame": 335,
-      "last_frame": 392,
-      "mid_frame": 363
+      "first_frame": 515,
+      "last_frame": 572,
+      "mid_frame": 543
     },
     {
       "key": "detail_random-02.overlay",
       "title": "Random local view 2 - overlay",
-      "first_frame": 401,
-      "last_frame": 461,
-      "mid_frame": 431
+      "first_frame": 581,
+      "last_frame": 641,
+      "mid_frame": 611
     },
     {
       "key": "random-03.move",
       "title": "Move to random local view 3",
-      "first_frame": 470,
-      "last_frame": 527,
-      "mid_frame": 498
+      "first_frame": 650,
+      "last_frame": 707,
+      "mid_frame": 678
     },
     {
       "key": "detail_random-03.overlay",
       "title": "Random local view 3 - overlay",
-      "first_frame": 536,
-      "last_frame": 596,
-      "mid_frame": 566
+      "first_frame": 716,
+      "last_frame": 776,
+      "mid_frame": 746
     },
     {
       "key": "random-04.move",
       "title": "Move to random local view 4",
-      "first_frame": 605,
-      "last_frame": 662,
-      "mid_frame": 633
+      "first_frame": 785,
+      "last_frame": 842,
+      "mid_frame": 813
     },
     {
       "key": "detail_random-04.overlay",
       "title": "Random local view 4 - overlay",
-      "first_frame": 671,
-      "last_frame": 731,
-      "mid_frame": 701
+      "first_frame": 851,
+      "last_frame": 911,
+      "mid_frame": 881
     }
   ]
 }

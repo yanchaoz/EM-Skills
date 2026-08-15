@@ -40,6 +40,25 @@ class CameraMotionTest(unittest.TestCase):
         self.assertLess(abs(hold_end["center"][1] - move_start["center"][1]), 0.1)
         self.assertLess(abs(hold_end["fov_nm"] - move_start["fov_nm"]), 0.1)
 
+    def test_default_review_holds_are_pixel_stable_poses(self):
+        first = self.pose(0.0)
+        middle = self.pose(1.5)
+        last = self.pose(3.0 - 1e-7)
+        self.assertEqual(first["phase"], "hold")
+        self.assertEqual(first["center"], middle["center"])
+        self.assertEqual(middle["center"], last["center"])
+        self.assertEqual(first["fov_nm"], middle["fov_nm"])
+        self.assertEqual(middle["fov_nm"], last["fov_nm"])
+
+    def test_hold_motion_remains_available_only_when_explicitly_configured(self):
+        camera = dict(self.camera, hold_pan_fraction=0.03, hold_zoom_fraction=0.05)
+        first = MOD.camera_pose(0.0, self.stops, self.fov, 4.0, 3.0, 2.0,
+                                False, camera)
+        last = MOD.camera_pose(3.0 - 1e-7, self.stops, self.fov, 4.0, 3.0, 2.0,
+                               False, camera)
+        self.assertNotEqual(first["center"], last["center"])
+        self.assertGreater(first["fov_nm"], last["fov_nm"])
+
     def test_move_midpoint_zooms_out_and_remains_between_stops(self):
         start = self.pose(3.0)
         middle = self.pose(4.0)

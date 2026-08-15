@@ -81,8 +81,8 @@ and server safety, read [the precomputed contract](precomputed-contract.md).
   "camera": {
     "easing": "smootherstep",
     "entry_start_fov_multiplier": 5.0,
-    "hold_pan_fraction": 0.035,
-    "hold_zoom_fraction": 0.06,
+    "hold_pan_fraction": 0.0,
+    "hold_zoom_fraction": 0.0,
     "transition_zoom_out_fraction": 0.16
   },
   "fade_frames": 15,
@@ -106,17 +106,22 @@ All times are seconds. Resolutions are isotropic XY nanometres per pixel. `densi
 - `entry_start_fov_multiplier`: initial FOV relative to `detail_fov_um` during
   the context-to-first-detail move; must be at least 1. Use `5.0` for a 1000 um
   context and 200 um local FOV so the move visibly starts at context scale.
-- `hold_pan_fraction`: total pan amplitude as a fraction of detail FOV. Values
-  above `0.08` are usually distracting for scientific review; maximum `0.20`.
-- `hold_zoom_fraction`: slow hold push-in, expressed as the starting excess FOV
-  over `detail_fov_um`; maximum `0.35`.
+- `hold_pan_fraction`: optional pan amplitude as a fraction of detail FOV.
+  Keep the default `0` so global results and local review fields remain
+  pixel-stable. Enable it only when the user explicitly requests motion during
+  holds; maximum `0.20`.
+- `hold_zoom_fraction`: optional hold push-in, expressed as the starting excess
+  FOV over `detail_fov_um`. Keep the default `0` for scientific inspection;
+  maximum `0.35`.
 - `transition_zoom_out_fraction`: midpoint zoom-out used to preserve context
   while moving between stops; maximum `1.0`.
 
-The renderer interpolates center and physical FOV, crops the aligned composite
-once, and recalculates scale bars and coordinate ranges for every frame. Set the
-three fractions to `0` for fixed-FOV motion. Motion blur and independent
-raw/mask transforms are intentionally unsupported.
+The renderer interpolates center and physical FOV during entry and inter-field
+moves, crops the aligned composite once, and recalculates scale bars and
+coordinate ranges for every frame. With the default zero hold fractions, all
+global and local display holds are frozen. Set `transition_zoom_out_fraction`
+to `0` as well for fixed-FOV translations. Motion blur and independent raw/mask
+transforms are intentionally unsupported.
 
 ## Neuroglancer settings
 

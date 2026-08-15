@@ -82,7 +82,7 @@ fields,” implement this exact story contract:
 ```text
 bounded 1 x 1 mm raw context
   → segmentation results at the same context coordinates
-  → density maps at the same context coordinates
+  → one full-size density map per structure at the same context coordinates
   → visible camera move to seeded-random local view 1 → overlay hold
   → visible moves and overlay holds for local views 2–4
 ```
@@ -93,6 +93,9 @@ bounded 1 x 1 mm raw context
   keep every local FOV inside the context ROI.
 - Label the stops `Random local view 1–4`. Do not rename them cortex, medulla,
   papilla, or other anatomical regions unless those identities were supplied.
+- Show every requested density map as its own readable context-scale hold; do
+  not compress multiple maps into a montage when the user asks to show them
+  one by one.
 - Show segmentation/density at the context scale once. Do not repeat raw,
   masks, overlay, and density at every local stop unless explicitly requested.
 - Make the movement itself visible; a crossfade between unrelated fields is
@@ -104,14 +107,17 @@ coordinates or approved named anatomy. “Random” never means representative.
 
 Set `video.include_overview: false` when the requested delivery must contain local fields only. The pipeline may still compute overview assets internally for alignment and stop selection, but it excludes them from the storyboard, MP4 timeline, and `.ngvideo` handoff.
 
-Use the `video.camera` block for restrained scientific camera motion. Prefer
-`smootherstep` easing, a slow push-in with slight pan during holds, and a small
-zoom-out while moving between distant stops. Keep the physical FOV within the
-configured bounds and update scale bars and coordinate captions from every
-rendered pose. Apply one transform to the already aligned raw-plus-label
-composite; never animate raw and masks independently. Review entry, midpoint,
-and exit poses in the storyboard or motion-contact sheet. Do not add motion
-blur, fake parallax, or depth effects that can hide boundaries.
+Use the `video.camera` block for restrained scientific camera motion. Freeze
+global result frames and local review holds by default
+(`hold_pan_fraction: 0`, `hold_zoom_fraction: 0`); motion belongs only to entry
+and inter-field transitions unless the user explicitly asks otherwise. Prefer
+`smootherstep` easing and a small zoom-out while moving between distant stops.
+Keep the physical FOV within the configured bounds and update scale bars and
+coordinate captions from every rendered pose. Apply one transform to the
+already aligned raw-plus-label composite; never animate raw and masks
+independently. Review entry, midpoint, and exit poses in the storyboard or
+motion-contact sheet. Do not add motion blur, fake parallax, or depth effects
+that can hide boundaries.
 
 For mesh, use a neutral background, stable lighting, the same camera elevation across comparisons, and a full orbit only when 3D shape is the subject.
 

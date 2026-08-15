@@ -30,7 +30,7 @@ TEMPLATE = {
         "zoom_seconds": 4.0, "hold_seconds": 3.0, "move_seconds": 3.0,
         "camera": {
             "easing": "smootherstep", "entry_start_fov_multiplier": 5.0,
-            "hold_pan_fraction": 0.035, "hold_zoom_fraction": 0.06,
+            "hold_pan_fraction": 0.0, "hold_zoom_fraction": 0.0,
             "transition_zoom_out_fraction": 0.16
         },
         "fade_frames": 15, "png_frames": True, "png_compression": 2,

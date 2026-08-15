@@ -28,6 +28,7 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] A requested 1 x 1 mm context is exactly that physical size and is not replaced by a whole-organ frame.
 - [ ] Each isolated overlay uses the requested color and opacity.
 - [ ] Each isolated overlay is immediately followed by its density map.
+- [ ] When density maps are requested one by one, every structure has a separate full-size context-scale hold rather than only a montage.
 - [ ] Density is mask area divided by valid tissue area in physical bins.
 - [ ] Combined view contains exactly the approved layers.
 - [ ] Requested random fields use a recorded seed, stay inside the context ROI, meet tissue/margin rules, and retain random order.
@@ -40,6 +41,7 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] Pan/zoom uses one transform for the aligned raw-plus-label composite.
 - [ ] Dynamic scale bars and coordinate captions match the instantaneous FOV.
 - [ ] Easing has no visible start/stop jumps; transition zoom-out remains restrained.
+- [ ] Global result holds and local review holds are pixel-stable; camera motion occurs only in declared transition segments unless explicitly requested.
 - [ ] Source missing tiles are distinguished from rendering artifacts.
 - [ ] Black background and hidden axis lines are correct.
 - [ ] Mesh previews use stable camera/light settings and show non-zero extent on all three axes.
@@ -63,6 +65,7 @@ Read this file completely before approving a storyboard, starting a formal rende
 - [ ] PNG count equals MP4 frame count when PNG export is enabled.
 - [ ] Samples from opening, overlays, densities, combined view, transitions, and holds decode.
 - [ ] Camera entry, hold midpoint, move midpoint, and final hold samples decode without blank borders or alignment drift.
+- [ ] First/middle/last decoded samples of every static hold are equal within codec tolerance.
 - [ ] Verification contact sheet has no unexpected blank/black frames.
 - [ ] SHA-256 is written for every MP4.
 - [ ] Mesh vertices are finite, face indices are valid, and exported mesh/video hashes are recorded.

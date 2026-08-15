@@ -6,7 +6,7 @@ um local ROIs** inside that context. It never displays a whole-kidney frame.
 
 ## What the video shows
 
-[▶ Watch or download the verified 30.5-second, 1080p video](kidney-local-fields-tour.mp4)
+[▶ Watch or download the verified 38-second, 1080p video](kidney-local-fields-tour.mp4)
 
 The auditable sequence is:
 
@@ -14,14 +14,16 @@ The auditable sequence is:
 2. nuclei, mitochondria, basement-membrane, and lysosome masks at the same
    context coordinates;
 3. the combined context overlay;
-4. four context-scale density maps;
+4. nuclei, mitochondria, basement-membrane, and lysosome density maps as four
+   separate, full-size context-scale holds;
 5. a physical-coordinate camera move to random local view 1 and an overlay
    hold, repeated for views 2–4.
 
 The first camera move changes from a 900 um FOV to 200 um; later moves use a
-restrained midpoint zoom-out. Local holds use an eased 4.5% push-in and subtle
-pan. Raw and masks share one transform, and the physical scale bar follows the
-instantaneous FOV.
+restrained midpoint zoom-out. Every global result and local overlay hold is
+geometrically locked; camera motion occurs only during the four declared move
+segments. Raw and masks share one transform, and the physical scale bar follows
+the instantaneous FOV.
 
 The context is sampled at 160 nm/px; local fields are sampled at 80 nm/px.
 Selection uses seed `20260815`, valid-tissue fraction at least `0.70`, and at
@@ -63,17 +65,18 @@ python make_local_tour.py \
 
 The export records dataset metadata hashes, mip resolutions, physical bounds,
 mask value samples, density denominators, and per-layer occupancy in the
-generated manifest. The renderer produces a storyboard, the MP4, 16 decoded
+generated manifest. The renderer produces a storyboard, the MP4, 15 decoded
 keyframe samples, and a machine-readable verification report.
 
 ## Verified artifact
 
-- video: `1920 x 1080`, 24 fps, 732 frames, 30.5 seconds;
+- video: `1920 x 1080`, 24 fps, 912 frames, 38.0 seconds;
 - scope: 1 x 1 mm segmentation/density context plus four seeded-random local views;
 - layers: nuclei, mitochondria, basement membrane, lysosomes;
-- camera: four visible moves, smoothstep easing, restrained zoom-out, locked raw-mask transform;
-- SHA-256: `482bd8623c28db17cb73853c472d11988356619ce59f3680d6031640cc00bce8`;
-- all 12 story keyframes decoded successfully; all verification checks passed.
+- camera: four visible moves, smoothstep easing, restrained transition zoom-out, zero hold pan/zoom, locked raw-mask transform;
+- static-hold QA: phase-correlation displacement at or below `0.15 px` for every global and local hold;
+- SHA-256: `ac8c4766bb67f9bb0d3469d54ad3646f19e008dd56ae6593b855816ab33060de`;
+- all 15 story keyframes decoded successfully; all verification checks passed.
 
 See [`kidney-local-fields-tour.verification.json`](kidney-local-fields-tour.verification.json)
 for the checks and complete timeline. The storyboard is retained at
