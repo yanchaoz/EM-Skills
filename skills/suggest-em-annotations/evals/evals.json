@@ -25,6 +25,11 @@
       "id": "matched-budget-evaluation",
       "prompt": "Prove the variable-size selector is better because its embedding coverage is higher.",
       "expected": "Rejects coverage-only proof and requests matched-budget random/equispaced/fixed-size baselines plus held-out downstream segmentation evaluation."
+    },
+    {
+      "id": "visualize-existing-selection",
+      "prompt": "Use my existing embeddings and draft selection to make the spatial and UMAP review figures. Do not run the encoder or selector again.",
+      "expected": "Reuses the existing artifacts, runs only visualization and integrity checks, records deterministic UMAP parameters, and does not force the complete annotation-planning workflow."
     }
   ]
 }

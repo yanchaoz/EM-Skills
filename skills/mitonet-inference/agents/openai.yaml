@@ -1,4 +1,4 @@
 interface:
   display_name: "MitoNet Inference"
-  short_description: "Audit, run, and verify mitochondrial instance segmentation"
-  default_prompt: "Use $mitonet-inference to audit this volume EM dataset, run a MitoNet pilot, and verify mitochondrial instances."
+  short_description: "Run, inspect, and verify MitoNet segmentation"
+  default_prompt: "Use $mitonet-inference for the requested mitochondrial segmentation task, reusing existing artifacts and running only the necessary preparation, inference, visualization, or verification stages."

@@ -10,6 +10,11 @@
       "id": "airgapped-remote",
       "prompt": "Plan an air-gapped remote MitoNet pilot without installing the skill locally.",
       "expected": ["pins repository and model hashes", "uses isolated remote runtime and wheelhouse", "does not store credentials"]
+    },
+    {
+      "id": "qc-existing-instances",
+      "prompt": "Inspect this existing mitochondrial instance TIFF against the raw EM and make a continuity figure. Do not run MitoNet again.",
+      "expected": ["reuses existing labels", "runs visualization and relevant QC only", "does not force preparation or inference"]
     }
   ]
 }
