@@ -187,6 +187,8 @@ The presentation uses four matched 20 nm/px local fields—cortex, corticomedull
 | --- | --- |
 | ![Kidney local EM fields](examples/kidney-local-cloudvolume-video/four-local-fields-20nm.jpg) | ![Kidney local density comparison](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
 
+[▶ Watch or download the verified 17-second, 1080p kidney local-field video](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
+
 This single-section kidney source is not presented as a true 3D mesh. Mesh retrieval, bounded label-to-mesh extraction, complete PLY export, headless turntable rendering, and video verification are covered separately by the Skill tests. [Complete local-field record](examples/kidney-local-cloudvolume-video/README.md)
 
 ## Scientific guardrails

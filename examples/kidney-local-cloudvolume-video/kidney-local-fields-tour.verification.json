@@ -1,0 +1,33 @@
+{
+  "video": "kidney-local-fields-tour.mp4",
+  "opened": true,
+  "width": 1920,
+  "height": 1080,
+  "fps": 24.0,
+  "frame_count": 408,
+  "duration_seconds": 17.0,
+  "decoded_samples": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "sha256": "58c852086fa0acc0d95f7643797557df46a82abfca50305cb8dba28da10d0bda",
+  "checks": {
+    "dimensions": true,
+    "fps": true,
+    "frame_count": true,
+    "all_samples_decoded": true
+  },
+  "ok": true,
+  "scope": "four local kidney fields only; no whole-kidney overview",
+  "source_display_resolution_nm_per_px": 20.0
+}

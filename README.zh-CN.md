@@ -185,6 +185,8 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 | --- | --- |
 | ![肾脏局部 EM 视野](examples/kidney-local-cloudvolume-video/four-local-fields-20nm.jpg) | ![肾脏局部密度对比](examples/kidney-local-cloudvolume-video/local-region-density-comparison.png) |
 
+[▶ 查看或下载经过验证的 17 秒、1080p 肾脏局部视野视频](examples/kidney-local-cloudvolume-video/kidney-local-fields-tour.mp4)
+
 该肾脏来源是单切片 WSI，因此不会被包装成真实三维 mesh 结果。Skill 测试会独立验证已有 mesh 读取、有界标签转 mesh、完整 PLY 导出、无界面 turntable 渲染与视频校验。[完整局部视野记录](examples/kidney-local-cloudvolume-video/README.md)
 
 ## 科研质量门禁
