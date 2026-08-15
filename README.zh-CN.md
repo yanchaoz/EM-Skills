@@ -20,6 +20,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 | ------------------------------------------------------------ | ---------------------------------- |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | 基于 SegNeuron 的 Volume EM 三维神经元实例分割 |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | 基于 MitoNet/Empanada 的线粒体语义与三维实例分割 |
+| [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 EMFoundation embedding 的可变尺寸子体块选择与人工标注建议 |
 
 `segneuron-inference` 适用于：
 
@@ -38,6 +39,7 @@ EM-Skills 是面向专业电子显微镜数据分析的可复用 Agent Skills �
 ```text
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/segneuron-inference。
 请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
+请从 GitHub 仓库 yanchaoz/EM-Skills 安装 skills/suggest-em-annotations。
 ```
 
 请安装完整的 Skill 目录，而不是只复制 `SKILL.md`。
@@ -96,6 +98,18 @@ beta = [0.10, 0.25, 0.50, 0.75]
 ```
 
 MitoNet 工作流会分别检查 semantic foreground、逐切片 panoptic instance、三维 stack matching、source-grid 恢复和科研审批。
+
+
+### EM 标注建议调用示例
+
+```text
+请使用 suggest-em-annotations skill，在固定标注体素预算下，从这份 zyx Volume EM 数据中规划可变尺寸的神经元分割标注区域。
+先审计 voxel size、轴顺序、数据源身份和 holdout 范围；使用固定版本 EMFoundation BASE 编码器生成真实的 512 维 embedding，
+执行多尺度、预算约束的 coverage-guided 子体块选择，并绘制空间位置、embedding 覆盖、原始 EM gallery、覆盖率曲线和人工审核队列。
+等待我逐个 accept/reject 后，再导出最终标注清单。
+```
+
+该工作流将 SL-SSNS 的 constrained coverage rate 思路扩展为可审计的多尺度、成本感知标注建议流程。它不会自动生成标签，会强制排除配置中的验证/测试区域，记录数据、模型和配置哈希，并在最终导出前要求具名人工审核。
 
 ---
 
@@ -389,6 +403,26 @@ syn178 示例的主要目的是验证工作流，而不是作为 SegNeuron 的�
 
 ---
 
+## AC3AC4 真实标注建议 Pilot
+
+标注建议 Skill 已在远端使用 `Pretraining_mito/models/BASE/learner.ckpt`，对真实的 `Figure2-Exps/data/AC3AC4/0.tif` 完成端到端运行。
+
+- 输入：`256 × 1024 × 1024`、`uint8`、zyx；
+- 编码器：74/74 个兼容权重完整加载，输出 512 维 PNIv2 pooled feature；
+- embedding：`3375 × 512`；
+- 候选：4 种尺寸，共 8,410 个子体块；
+- 预算：24,000,000 个原始体素，最多 6 个框；
+- 选择结果：6 个框，共使用 22,806,528 个体素；
+- embedding coverage：`k=30` 时为 49.63%。
+
+![AC3AC4 标注建议总览](examples/ac3ac4-annotation-advisor/selection-overview.png)
+
+![AC3AC4 原始 EM 审核 gallery](examples/ac3ac4-annotation-advisor/raw-subvolume-gallery.png)
+
+精确哈希、坐标、配置和限制见 [完整 Pilot 记录](examples/ac3ac4-annotation-advisor/README.md)。当前队列仍是需要人工逐项审核的 draft；较高 embedding coverage 不能单独证明下游分割性能提升。
+
+---
+
 ## 设计原则
 
 EM-Skills 遵循几个基本原则。
@@ -463,6 +497,7 @@ EM-Skills 主要面向：
 * [部署说明](skills/segneuron-inference/references/deployment.md)
 * [MitoNet Inference Skill](skills/mitonet-inference/SKILL.md)
 * [MitoNet 配置说明](skills/mitonet-inference/references/config-schema.md)
+* [EM 标注建议 Skill](skills/suggest-em-annotations/SKILL.md)、[EMFoundation 适配器](skills/suggest-em-annotations/references/emfoundation-adapter.md) 与 [评估方案](skills/suggest-em-annotations/references/evaluation-protocol.md)
 
 ---
 

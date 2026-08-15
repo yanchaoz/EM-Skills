@@ -1,0 +1,47 @@
+{
+  "project": {
+    "id": "ac3ac4-emfoundation-demo",
+    "purpose": "Select variable-size representative neuron-segmentation subvolumes for expert annotation"
+  },
+  "source": {
+    "uri": "file:///ABSOLUTE/PATH/0.tif",
+    "dataset_key": null,
+    "axes": "zyx",
+    "shape_zyx": [256, 512, 512],
+    "voxel_size_nm_zyx": [30.0, 6.0, 6.0],
+    "dtype": "uint8",
+    "source_sha256": "REPLACE_WITH_64_HEX_CHARACTERS"
+  },
+  "embedding": {
+    "model_repository": "/opt/data/3_33/SCN/zhangyc/EMFoundataion/Code/Pretraining_mito",
+    "model_commit": "REPLACE_WITH_CODE_REVISION",
+    "checkpoint_name": "models/BASE/learner.ckpt",
+    "checkpoint_sha256": "REPLACE_WITH_64_HEX_CHARACTERS",
+    "dimension": 512,
+    "normalization": "if max>1.5 divide by 255, then per-patch z-score"
+  },
+  "tiling": {
+    "patch_shape_zyx": [32, 128, 128],
+    "stride_zyx": [16, 64, 64],
+    "boundary_mode": "align_end"
+  },
+  "selection": {
+    "max_subvolumes": 6,
+    "annotation_budget_voxels": 24000000,
+    "candidate_windows_patches_zyx": [[1, 3, 3], [1, 5, 5], [2, 3, 3], [2, 5, 5]],
+    "expected_subvolume_shapes_zyx": [[32, 256, 256], [32, 384, 384], [48, 256, 256], [48, 384, 384]],
+    "k_neighbors": 30,
+    "metric": "euclidean",
+    "cost_exponent": 0.75,
+    "disallow_patch_overlap": true,
+    "max_exact_patches": 20000,
+    "max_working_memory_mib": 512
+  },
+  "guards": {
+    "excluded_bboxes_zyx": [],
+    "holdout_bboxes_zyx": [
+      [[224, 0, 0], [256, 512, 512]]
+    ],
+    "minimum_split_gap_voxels_zyx": [0, 0, 0]
+  }
+}

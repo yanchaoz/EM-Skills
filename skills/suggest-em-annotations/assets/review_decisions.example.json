@@ -1,0 +1,17 @@
+{
+  "reviewer": "REPLACE_WITH_REVIEWER_NAME",
+  "reviewed_at": "2026-01-01T00:00:00+00:00",
+  "notes": "Inspect every z slice and record tissue/artifact concerns.",
+  "decisions": [
+    {
+      "candidate_id": "sv-0000-0000-0000",
+      "decision": "accept",
+      "reason": "Representative tissue; no major acquisition artifact."
+    },
+    {
+      "candidate_id": "sv-0000-0006-0006",
+      "decision": "reject",
+      "reason": "Section-fold artifact dominates the candidate."
+    }
+  ]
+}
