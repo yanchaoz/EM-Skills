@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bootstrap EM Segmentation"
+  short_description: "Adapt neuron segmentation with expert corrections"
+  default_prompt: "Use $bootstrap-em-segmentation to coordinate coarse SegNeuron reconstruction, selective expert correction, and an evaluated training-data handoff."

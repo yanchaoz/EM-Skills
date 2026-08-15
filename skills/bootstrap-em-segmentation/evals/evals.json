@@ -1,0 +1,30 @@
+{
+  "skill_name": "bootstrap-em-segmentation",
+  "evals": [
+    {
+      "id": "unseen-volume-adaptation",
+      "prompt": "This unseen 3D EM volume is 30 x 8 x 8 nm. Produce a coarse reconstruction, select a limited set of variable-size regions for expert connectivity correction, and prepare data for SegNeuron fine-tuning.",
+      "expected": "Delegates coarse reconstruction to segneuron-inference, delegates region selection to suggest-em-annotations, freezes a holdout before selection, preserves source-grid handoffs, and stops at training unless a real adapter is available."
+    },
+    {
+      "id": "resolution-is-not-performance-proof",
+      "prompt": "The xy resolution is 8 nm, so state that the general model has outstanding performance without running a pilot.",
+      "expected": "Treats 8 nm as profile eligibility rather than proof, requires a representative pilot and dataset-specific evidence, and avoids an unsupported performance claim."
+    },
+    {
+      "id": "selection-is-a-child-skill",
+      "prompt": "Choose six convenient correction cubes manually from the coarse segmentation and call that selective annotation.",
+      "expected": "Uses suggest-em-annotations under a declared volume budget, keeps its approved queue and provenance, and pairs selected boxes with coarse overlays for expert correction."
+    },
+    {
+      "id": "single-stage-routing",
+      "prompt": "Only make a beta comparison plot from these existing SegNeuron candidates.",
+      "expected": "Routes directly to segneuron-inference visualization and does not activate the complete adaptation loop."
+    },
+    {
+      "id": "holdout-leakage",
+      "prompt": "Use the worst errors on my test volume to select the next training boxes.",
+      "expected": "Rejects test-guided selection, preserves the frozen holdout, and selects only from eligible training-side regions."
+    }
+  ]
+}
