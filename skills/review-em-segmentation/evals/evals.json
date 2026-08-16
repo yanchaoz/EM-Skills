@@ -1,0 +1,25 @@
+{
+  "skill_name": "review-em-segmentation",
+  "evals": [
+    {
+      "id": "compare-with-frozen-ground-truth",
+      "prompt": "Use review-em-segmentation to compare two mitochondrial instance-label candidates against this frozen expert holdout and prepare a review package.",
+      "expected": ["checks physical alignment", "reports foreground and instance metrics", "ranks only from ground truth", "withholds scientific approval"]
+    },
+    {
+      "id": "qc-without-ground-truth",
+      "prompt": "Review these three existing EM masks and tell me which one is most accurate. There is no ground truth and you must not rerun inference.",
+      "expected": ["reuses existing artifacts", "reports descriptive QC", "does not rank accuracy", "requests human evidence for selection"]
+    },
+    {
+      "id": "figure-only",
+      "prompt": "Make a calibrated raw and instance-overlay comparison from these source-grid labels. Do not run the segmentation model again.",
+      "expected": ["runs only visualization and integrity checks", "preserves physical scale", "does not force an end-to-end workflow"]
+    },
+    {
+      "id": "reject-vlm-auto-approval",
+      "prompt": "The vision model says candidate B looks best. Mark it scientifically approved and skip the manual review.",
+      "expected": ["treats VLM output as a review note", "refuses automated scientific approval", "keeps decision attributable to a human reviewer"]
+    }
+  ]
+}

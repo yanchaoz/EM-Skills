@@ -16,6 +16,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | [MitoNet](https://www.cell.com/cell-systems/fulltext/S2405-4712(22)00492-6) mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | [Embedding-guided, variable-size subvolume selection](https://www.sciencedirect.com/science/article/pii/S2589004225027683) | annotation queue, UMAP/spatial review, approved manifest |
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
+| [`review-em-segmentation`](skills/review-em-segmentation/SKILL.md) | Independent integrity, metric, and visual review of existing semantic or instance labels | review report, calibrated comparison figures, optional human approval record |
 | [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | [Neuroglancer](https://github.com/google/neuroglancer) preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
@@ -38,6 +39,8 @@ The **5–10 nm xy range is an applicability check, not a performance guarantee*
 
 Selective annotation is performed by `$suggest-em-annotations`: it selects variable-size regions under a declared budget. Experts then inspect raw/coarse overlays and correct connectivity inside the approved boxes. Training runs only through a real, pinned training adapter.
 
+Existing segmentation artifacts can be passed to `$review-em-segmentation` for independent integrity checks, source-aligned comparison figures, descriptive QC, and frozen-ground-truth metrics. Automated scoring never grants scientific approval; a named human reviewer records any decision separately.
+
 After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` can prepare and verify derived Neuroglancer precomputed layers, then present selected local fields or mesh scenes without changing upstream labels or model decisions.
 
 ## Quick start
@@ -51,6 +54,7 @@ Install skills/segneuron-inference from yanchaoz/EM-Skills.
 Install skills/mitonet-inference from yanchaoz/EM-Skills.
 Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
 Install skills/bootstrap-em-segmentation from yanchaoz/EM-Skills.
+Install skills/review-em-segmentation from yanchaoz/EM-Skills.
 Install skills/cloudvolume-video from yanchaoz/EM-Skills.
 ```
 
@@ -114,7 +118,18 @@ raw/coarse overlays for expert connectivity correction, and export a verified
 training handoff. Compare any adapted checkpoint on a frozen holdout.
 ```
 
-### 5. Neuroglancer preparation and CloudVolume presentation
+### 5. Independent segmentation review
+
+```text
+Use $review-em-segmentation to compare these existing source-grid instance labels
+against the frozen expert holdout. Verify axes, resolution, physical alignment, and
+label semantics; report foreground and instance metrics; create calibrated overlays;
+and leave scientific approval withheld until I review the evidence.
+```
+
+Without ground truth, the Skill reports descriptive QC side by side and does not rank candidate accuracy.
+
+### 6. Neuroglancer preparation and CloudVolume presentation
 
 ```text
 Use $cloudvolume-video on these kidney datasets. If an input is TIFF, NPY,
@@ -223,6 +238,7 @@ EM-Skills/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
 │   ├── bootstrap-em-segmentation/
+│   ├── review-em-segmentation/
 │   └── cloudvolume-video/
 ├── examples/
 ├── README.md
@@ -237,6 +253,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 - MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)
 - Annotation advisor: [Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)
 - Adaptive reconstruction: [Skill](skills/bootstrap-em-segmentation/SKILL.md) · [cross-Skill composition contract](skills/bootstrap-em-segmentation/references/composition-contract.md)
+- Segmentation review: [Skill](skills/review-em-segmentation/SKILL.md) · [artifact contract](skills/review-em-segmentation/references/artifact-contract.md) · [configuration](skills/review-em-segmentation/references/config-schema.md) · [quality gates](skills/review-em-segmentation/references/quality-gates.md)
 - CloudVolume video: [Skill](skills/cloudvolume-video/SKILL.md) · [configuration](skills/cloudvolume-video/references/config-schema.md) · [precomputed contract](skills/cloudvolume-video/references/precomputed-contract.md) · [mesh contract](skills/cloudvolume-video/references/mesh-contract.md) · [quality gates](skills/cloudvolume-video/references/quality-gates.md)
 
 ## License

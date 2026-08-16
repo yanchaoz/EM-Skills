@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review EM Segmentation"
+  short_description: "Audit, compare, and verify EM segmentations"
+  default_prompt: "Use $review-em-segmentation to audit these EM segmentation candidates, create calibrated QC figures, compare available evidence, and keep scientific approval separate from automated scoring."

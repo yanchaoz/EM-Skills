@@ -1,0 +1,35 @@
+project_id: em-review-example
+
+raw:
+  path: data/raw.npy
+  source_id: dataset-name:roi-name:immutable-version
+  grid_id: source-grid-v1
+  axes: zyx
+  resolution_nm: [40, 8, 8]
+  offset_vox: [0, 0, 0]
+
+candidates:
+  - name: conservative
+    path: data/instances-conservative.npy
+    kind: instance
+    grid_id: source-grid-v1
+    provenance: "Pinned model/checkpoint/config and executed command"
+  - name: permissive
+    path: data/instances-permissive.npy
+    kind: instance
+    grid_id: source-grid-v1
+    provenance: "Pinned model/checkpoint/config and executed command"
+
+# Remove this block when no frozen, independently curated ground truth exists.
+ground_truth:
+  path: data/ground-truth.npy
+  kind: instance
+  grid_id: source-grid-v1
+  provenance: "Expert-reviewed holdout labels; excluded from training and parameter selection"
+
+review:
+  output_root: derived/review
+  axis: xy
+  index: null
+  instance_iou_threshold: 0.5
+  force: false
