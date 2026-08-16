@@ -137,7 +137,11 @@ def choose_slice(labels: list[np.ndarray], axis: str, requested: int | None) -> 
         foreground |= label > 0
     reduction = tuple(index for index in range(3) if index != dim)
     counts = np.count_nonzero(foreground, axis=reduction)
-    return int(np.argmax(counts)) if np.any(counts) else labels[0].shape[dim] // 2
+    center = labels[0].shape[dim] // 2
+    if not np.any(counts):
+        return center
+    maxima = np.flatnonzero(counts == counts.max())
+    return int(maxima[np.argmin(np.abs(maxima - center))])
 
 
 def take_view(array: np.ndarray, axis: str, index: int | None) -> np.ndarray:
@@ -489,7 +493,7 @@ def review(config_path: Path) -> dict[str, Any]:
             "grid_id": grid_id,
             "view_axis": axis,
             "view_index": index,
-            "slice_selection": "manual" if requested_index is not None else "maximum union foreground",
+            "slice_selection": "manual" if requested_index is not None else "maximum union foreground; centered tie-break",
         },
         "raw": {
             "path": str(raw_path),

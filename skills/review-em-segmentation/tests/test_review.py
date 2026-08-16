@@ -43,6 +43,12 @@ class MetricTests(unittest.TestCase):
         self.assertGreater(reviewer.scale_bar_um(0.5), 0)
         self.assertLessEqual(reviewer.scale_bar_um(10), 2.8)
 
+    def test_dense_slice_selection_uses_centered_tie_break(self):
+        dense = np.ones((6, 8, 10), dtype=np.uint16)
+        self.assertEqual(reviewer.choose_slice([dense], "xy", None), 3)
+        self.assertEqual(reviewer.choose_slice([dense], "xz", None), 4)
+        self.assertEqual(reviewer.choose_slice([dense], "yz", None), 5)
+
     @unittest.skipIf(importlib.util.find_spec("tifffile") is None, "tifffile is not installed")
     def test_loads_tiff_labels(self):
         import tifffile
