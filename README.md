@@ -2,6 +2,12 @@
 
 **Reusable Agent Skills for Electron Microscopy Analysis**
 
+![GitHub stars](https://img.shields.io/github/stars/yanchaoz/EM-Skills?style=social)
+![GitHub forks](https://img.shields.io/github/forks/yanchaoz/EM-Skills?style=social)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=yanchaoz.EM-Skills)
+ 
+ 
+
 English | [简体中文](README.zh-CN.md)
 
 EM-Skills packages specialized EM methods as task-routed Agent Skills. Each Skill combines domain guidance, deterministic scripts, model/configuration references, and scientific quality gates.
