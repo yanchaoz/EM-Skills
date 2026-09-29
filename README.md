@@ -18,6 +18,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 
 | Skill | Use it for | Main outputs |
 | --- | --- | --- |
+| [`discover-vem-datasets`](skills/discover-vem-datasets/SKILL.md) | Search and audit the [awesome-vem-datasets](https://github.com/yanchaoz/awesome-vem-datasets) catalog for task-ready public data | evidence-aware shortlist, unresolved metadata, downstream handoff manifest |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | [SegNeuron](https://papers.miccai.org/miccai-2024/paper/0518_paper.pdf) affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | [MitoNet](https://www.cell.com/cell-systems/fulltext/S2405-4712(22)00492-6) mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | [Embedding-guided, variable-size subvolume selection](https://www.sciencedirect.com/science/article/pii/S2589004225027683) | annotation queue, UMAP/spatial review, approved manifest |
@@ -29,10 +30,12 @@ Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and oth
 
 ## How the Skills work together
 
-Single-stage requests go directly to the relevant Skill. Requests that span reconstruction, selective correction, and adaptation use `$bootstrap-em-segmentation` as the coordinator.
+Dataset-selection requests start with `$discover-vem-datasets`, which can export a candidate handoff to an execution Skill. Single-stage analysis requests go directly to the relevant Skill. Requests that span reconstruction, selective correction, and adaptation use `$bootstrap-em-segmentation` as the coordinator.
 
 ```text
-Unseen 3D EM (xy: 5–10 nm)
+Scientific requirement
+  → $discover-vem-datasets: shortlist, source audit, handoff manifest
+  → Selected unseen 3D EM (xy: 5–10 nm)
   → $segneuron-inference: zero-shot coarse reconstruction
   → $suggest-em-annotations: variable-size region selection
   → Human expert: connectivity correction
@@ -56,6 +59,7 @@ After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` 
 Ask Codex to install one or more complete Skill directories:
 
 ```text
+Install skills/discover-vem-datasets from yanchaoz/EM-Skills.
 Install skills/segneuron-inference from yanchaoz/EM-Skills.
 Install skills/mitonet-inference from yanchaoz/EM-Skills.
 Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
@@ -81,7 +85,17 @@ Missing or contradictory scientific metadata is reported rather than guessed.
 
 ## Prompt examples
 
-### 1. Neuron reconstruction with beta review
+### 1. Dataset discovery and downstream handoff
+
+```text
+Use $discover-vem-datasets to find open mouse cortex volume EM datasets with
+xy sampling at or below 10 nm and neuron instance labels. Separate reported
+metadata from fields verified at authoritative sources, compare biological and
+operational fit, and export the best candidate as a $segneuron-inference handoff.
+Do not download the dataset yet.
+```
+
+### 2. Neuron reconstruction with beta review
 
 ```text
 Use $segneuron-inference on this zyx Volume EM dataset at 50 × 4 × 4 nm.
@@ -97,7 +111,7 @@ Use $segneuron-inference to compare these existing beta candidates and make
 an overlay figure only. Do not rerun inference.
 ```
 
-### 2. Mitochondrial segmentation
+### 3. Mitochondrial segmentation
 
 ```text
 Use $mitonet-inference on this zyx EM volume. Audit voxel size, run a pilot,
@@ -105,7 +119,7 @@ compare the named 8 nm and 16 nm profiles, and render raw, foreground,
 instance-overlay, and XZ-continuity panels. Wait for my profile selection.
 ```
 
-### 3. Selective annotation
+### 4. Selective annotation
 
 ```text
 Use $suggest-em-annotations to select variable-size neuron-annotation regions
@@ -114,7 +128,7 @@ BASE encoder, exclude my holdout bounds, render UMAP/spatial/raw review figures,
 and wait for accept/reject decisions before exporting the final queue.
 ```
 
-### 4. Adaptation on an unseen dataset
+### 5. Adaptation on an unseen dataset
 
 ```text
 Use $bootstrap-em-segmentation on this unseen 30 × 8 × 8 nm zyx EM volume.
@@ -124,7 +138,7 @@ raw/coarse overlays for expert connectivity correction, and export a verified
 training handoff. Compare any adapted checkpoint on a frozen holdout.
 ```
 
-### 5. Independent segmentation review
+### 6. Independent segmentation review
 
 ```text
 Use $review-em-segmentation to compare these existing source-grid instance labels
@@ -135,7 +149,7 @@ and leave scientific approval withheld until I review the evidence.
 
 Without ground truth, the Skill reports descriptive QC side by side and does not rank candidate accuracy.
 
-### 6. Neuroglancer preparation and CloudVolume presentation
+### 7. Neuroglancer preparation and CloudVolume presentation
 
 ```text
 Use $cloudvolume-video on these kidney datasets. If an input is TIFF, NPY,
@@ -240,6 +254,7 @@ This single-section kidney source is not presented as a true 3D mesh. Mesh retri
 ```text
 EM-Skills/
 ├── skills/
+│   ├── discover-vem-datasets/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
@@ -255,6 +270,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 
 ## Technical documentation
 
+- Dataset discovery: [Skill](skills/discover-vem-datasets/SKILL.md) · [catalog schema](skills/discover-vem-datasets/references/catalog-schema.md) · [selection and handoff](skills/discover-vem-datasets/references/selection-and-handoff.md) · [catalog snapshot](skills/discover-vem-datasets/references/datasets.json)
 - SegNeuron: [Skill](skills/segneuron-inference/SKILL.md) · [configuration](skills/segneuron-inference/references/config-schema.md) · [resolution and grids](skills/segneuron-inference/references/resolution-and-grids.md) · [deployment](skills/segneuron-inference/references/deployment.md)
 - MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)
 - Annotation advisor: [Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation adapter](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [evaluation protocol](skills/suggest-em-annotations/references/evaluation-protocol.md)

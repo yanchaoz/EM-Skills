@@ -12,6 +12,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 | Skill | 适用任务 | 主要输出 |
 | --- | --- | --- |
+| [`discover-vem-datasets`](skills/discover-vem-datasets/SKILL.md) | 从 [awesome-vem-datasets](https://github.com/yanchaoz/awesome-vem-datasets) 检索并审计可用于具体任务的公开数据 | 带证据状态的候选清单、未决元数据、下游交接 manifest |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron affinity 推理与三维神经元重建 | affinity、多 beta instance、source-grid 标签、QC 图 |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada 线粒体分割 | semantic mask、三维 instance、profile 对比、QC 图 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 embedding 的可变尺寸子体块选择 | 标注队列、UMAP/空间审核、获批清单 |
@@ -23,10 +24,12 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 ## Skills 如何联动
 
-单阶段请求直接交给对应 Skill；当请求跨越粗分割、选择性修正和模型适配时，由 `$bootstrap-em-segmentation` 协调。
+数据选择请求先交给 `$discover-vem-datasets`，由它生成候选清单并向执行型 Skill 导出交接 manifest。单阶段分析请求直接交给对应 Skill；当请求跨越粗分割、选择性修正和模型适配时，由 `$bootstrap-em-segmentation` 协调。
 
 ```text
-未见过的 3D EM（xy: 5–10 nm）
+科研数据需求
+  → $discover-vem-datasets：候选清单、来源审计、交接 manifest
+  → 选定的未见 3D EM（xy: 5–10 nm）
   → $segneuron-inference：零样本粗分割
   → $suggest-em-annotations：可变尺寸区域选择
   → 人工专家：连通性修正
@@ -50,6 +53,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 让 Codex 安装一个或多个完整 Skill 目录：
 
 ```text
+请从 yanchaoz/EM-Skills 安装 skills/discover-vem-datasets。
 请从 yanchaoz/EM-Skills 安装 skills/segneuron-inference。
 请从 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
 请从 yanchaoz/EM-Skills 安装 skills/suggest-em-annotations。
@@ -75,7 +79,16 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 ## 调用示例
 
-### 1. 神经元重建与 beta 审核
+### 1. 数据集发现与下游交接
+
+```text
+请用 $discover-vem-datasets 查找 xy 不超过 10 nm、具有 neuron instance
+标签的开放鼠脑皮层 Volume EM 数据。区分上游表格报告的元数据与已在权威来源
+核验的字段，比较生物学与运行条件的匹配度，并将最佳候选导出为
+$segneuron-inference 交接 manifest。现在不要下载数据。
+```
+
+### 2. 神经元重建与 beta 审核
 
 ```text
 请对这份 50 × 4 × 4 nm、zyx Volume EM 使用 $segneuron-inference。
@@ -91,7 +104,7 @@ beta = [0.10, 0.25, 0.50, 0.75]。展示 raw EM、affinity、membrane
 不要重新运行推理。
 ```
 
-### 2. 线粒体分割
+### 3. 线粒体分割
 
 ```text
 请对这份 zyx EM volume 使用 $mitonet-inference。审计 voxel size，
@@ -99,7 +112,7 @@ beta = [0.10, 0.25, 0.50, 0.75]。展示 raw EM、affinity、membrane
 instance overlay 和 XZ 连续性图。等我选择 profile 后再继续。
 ```
 
-### 3. 选择性标注
+### 4. 选择性标注
 
 ```text
 请用 $suggest-em-annotations 在 24,000,000 voxel 预算下，从这份数据中
@@ -108,7 +121,7 @@ instance overlay 和 XZ 连续性图。等我选择 profile 后再继续。
 再导出最终标注队列。
 ```
 
-### 4. 未见数据集适配
+### 5. 未见数据集适配
 
 ```text
 请对这份未见过的 30 × 8 × 8 nm、zyx EM 数据使用
@@ -117,7 +130,7 @@ $suggest-em-annotations 选择可变尺寸修正区域；为专家准备 raw/coa
 导出经过验证的训练交接，并在冻结 holdout 上比较适配后的 checkpoint。
 ```
 
-### 5. 独立分割审核
+### 6. 独立分割审核
 
 ```text
 请用 $review-em-segmentation 将这些已有 source-grid instance 标签与冻结的专家
@@ -127,7 +140,7 @@ instance 指标，生成带物理标尺的 overlay；在我审核证据前保持
 
 没有 ground truth 时，Skill 只并列报告描述性 QC，不对候选准确率排序。
 
-### 6. Neuroglancer 准备与 CloudVolume 展示
+### 7. Neuroglancer 准备与 CloudVolume 展示
 
 ```text
 请对这些肾脏数据使用 $cloudvolume-video。如果输入是 TIFF、NPY、Zarr 或 N5，
@@ -223,6 +236,7 @@ instance 指标，生成带物理标尺的 overlay；在我审核证据前保持
 ```text
 EM-Skills/
 ├── skills/
+│   ├── discover-vem-datasets/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
@@ -238,6 +252,7 @@ EM-Skills/
 
 ## 技术文档
 
+- 数据发现：[Skill](skills/discover-vem-datasets/SKILL.md) · [目录 schema](skills/discover-vem-datasets/references/catalog-schema.md) · [筛选与交接](skills/discover-vem-datasets/references/selection-and-handoff.md) · [目录快照](skills/discover-vem-datasets/references/datasets.json)
 - SegNeuron：[Skill](skills/segneuron-inference/SKILL.md) · [配置](skills/segneuron-inference/references/config-schema.md) · [分辨率与网格](skills/segneuron-inference/references/resolution-and-grids.md) · [部署](skills/segneuron-inference/references/deployment.md)
 - MitoNet：[Skill](skills/mitonet-inference/SKILL.md) · [模型契约](skills/mitonet-inference/references/model-contract.md) · [配置](skills/mitonet-inference/references/config-schema.md)
 - 标注建议：[Skill](skills/suggest-em-annotations/SKILL.md) · [EMFoundation 适配器](skills/suggest-em-annotations/references/emfoundation-adapter.md) · [评估方案](skills/suggest-em-annotations/references/evaluation-protocol.md)

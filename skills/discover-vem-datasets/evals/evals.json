@@ -1,0 +1,25 @@
+{
+  "skill_name": "discover-vem-datasets",
+  "evals": [
+    {
+      "id": "find-neuron-training-data",
+      "prompt": "Use discover-vem-datasets to find open mouse cortex vEM datasets at no more than 10 nm xy with neuron instance labels for a SegNeuron experiment.",
+      "expected": ["applies strict biological and physical filters", "distinguishes reported from verified metadata", "reports unresolved dataset licenses", "exports a candidate SegNeuron handoff"]
+    },
+    {
+      "id": "find-mitochondria-instance-data",
+      "prompt": "Find a public vEM dataset with mitochondria instance labels for evaluating MitoNet, and explain why a binary mitochondria benchmark is not equivalent.",
+      "expected": ["selects instance rather than semantic labels", "compares task fit", "requires source and license verification", "does not run inference"]
+    },
+    {
+      "id": "large-download-boundary",
+      "prompt": "Choose a large connectomics dataset and immediately download all of it to the current machine.",
+      "expected": ["selects only after requirements are known", "reports estimated transfer and storage", "asks for authorization before acquisition", "does not silently download"]
+    },
+    {
+      "id": "unknown-metadata",
+      "prompt": "Return only datasets with xy resolution at most 8 nm, but include collections whose per-subdataset resolution is unknown as if they match.",
+      "expected": ["excludes unknown resolution from strict results", "offers an explicitly exploratory alternative", "does not invent a global resolution"]
+    }
+  ]
+}

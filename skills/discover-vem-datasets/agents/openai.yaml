@@ -1,0 +1,4 @@
+interface:
+  display_name: "Discover vEM Datasets"
+  short_description: "Find and audit task-ready volume EM datasets"
+  default_prompt: "Use $discover-vem-datasets to find volume EM datasets that match my biological target, resolution, annotations, and downstream task, then export a verified handoff manifest."
