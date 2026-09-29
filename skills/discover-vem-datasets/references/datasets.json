@@ -1,0 +1,339 @@
+{
+  "schema_version": "1.0",
+  "catalog_id": "awesome-vem-datasets-task-ready-snapshot",
+  "snapshot": {
+    "upstream_repository": "https://github.com/yanchaoz/awesome-vem-datasets",
+    "upstream_commit": "96347f4c89066efbabc713ae34a45dd44639053c",
+    "captured_on": "2026-09-29",
+    "scope": "Curated task-relevant subset; not a complete mirror of the upstream museum",
+    "catalog_license": "MIT"
+  },
+  "datasets": [
+    {
+      "id": "snemi3d-ac3-ac4",
+      "name": "SNEMI3D / AC3 / AC4",
+      "aliases": ["SNEMI3D", "AC3", "AC4", "Kasthuri15 subset"],
+      "species": ["mouse"],
+      "tissues": ["cortex"],
+      "modalities": ["ATUM-SEM"],
+      "voxel_size_nm_zyx": [30, 6, 6],
+      "annotations": ["neuron_instance", "membrane"],
+      "tasks": ["neuron_segmentation", "connectomics", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "landing_page", "url": "https://snemi3d.grand-challenge.org/", "format": "challenge download"},
+          {"role": "reported_mirror", "url": "https://drive.google.com/drive/folders/1JAdoKchlWrHnbTXvnF6pWWwx6VIiMH3?usp=sharing", "format": "unknown"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Dense neurite ground truth; AC3 and AC4 have different volumes and must not be conflated."
+    },
+    {
+      "id": "cremi-abc",
+      "name": "CREMI A/B/C",
+      "aliases": ["CREMI"],
+      "species": ["drosophila"],
+      "tissues": ["brain"],
+      "modalities": ["ssTEM"],
+      "voxel_size_nm_zyx": [40, 4, 4],
+      "annotations": ["neuron_instance", "synaptic_cleft", "synaptic_partner"],
+      "tasks": ["neuron_segmentation", "synapse_detection", "connectomics", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "landing_page", "url": "https://cremi.org/data/", "format": "HDF5"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Three FAFB-derived volumes; verify split and label channels before use."
+    },
+    {
+      "id": "isbi-2012",
+      "name": "ISBI 2012 EM Segmentation Challenge",
+      "aliases": ["ISBI", "ISBI 2012"],
+      "species": ["drosophila"],
+      "tissues": ["ventral nerve cord"],
+      "modalities": ["ssTEM"],
+      "voxel_size_nm_zyx": [50, 4, 4],
+      "annotations": ["membrane"],
+      "tasks": ["membrane_segmentation", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "landing_page", "url": "https://imagej.net/events/isbi-2012-segmentation-challenge", "format": "TIFF"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Membrane labels are not neuron instance ground truth."
+    },
+    {
+      "id": "fib-25",
+      "name": "FIB-25 training volume",
+      "aliases": ["FIB25", "FIB-25 training"],
+      "species": ["drosophila"],
+      "tissues": ["optic medulla"],
+      "modalities": ["FIB-SEM"],
+      "voxel_size_nm_zyx": [8, 8, 8],
+      "annotations": ["neuron_instance"],
+      "tasks": ["neuron_segmentation", "connectomics", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "sample_data", "url": "https://github.com/google/ffn#sample-data", "format": "unknown"},
+          {"role": "labels", "url": "https://github.com/janelia-flyem/neuroproof_examples", "format": "unknown"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Reported as dense ground truth and FFN training data; pin the exact sample release."
+    },
+    {
+      "id": "j0126",
+      "name": "J0126",
+      "aliases": ["Zebra finch Area X"],
+      "species": ["zebra finch"],
+      "tissues": ["Area X"],
+      "modalities": ["SBF-SEM"],
+      "voxel_size_nm_zyx": [20, 9, 9],
+      "annotations": ["neuron_instance", "skeleton"],
+      "tasks": ["neuron_segmentation", "connectomics", "evaluation", "visualization"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "raw", "url": "https://storage.googleapis.com/j0126-nature-methods-data/GgwKmcKgrcoNxJccKuGIzRnQqfit9hnfK1ctZzNbnuU/rawdata_realigned", "format": "Neuroglancer precomputed"},
+          {"role": "segmentation", "url": "https://storage.googleapis.com/j0126-nature-methods-data/GgwKmcKgrcoNxJccKuGIzRnQqfit9hnfK1ctZzNbnuU/ffn_segmentation", "format": "Neuroglancer precomputed"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/DATASET.md"],
+      "notes": "Large source with reported training/evaluation blocks and skeletons; select bounded ROIs before transfer."
+    },
+    {
+      "id": "microns-pinky",
+      "name": "MICrONS Pinky training stacks",
+      "aliases": ["Pinky", "MICrONS phase 1"],
+      "species": ["mouse"],
+      "tissues": ["visual cortex"],
+      "modalities": ["ssTEM"],
+      "voxel_size_nm_zyx": [40, 4, 4],
+      "annotations": ["neuron_instance", "mitochondria_instance", "synapse"],
+      "tasks": ["neuron_segmentation", "mitochondria_segmentation", "synapse_detection", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "project", "url": "https://bossdb.org/project/microns_pinky2021", "format": "BossDB"},
+          {"role": "annotation_release", "url": "https://zenodo.org/records/5760218", "format": "HDF5"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Reported neuron, mitochondria, and postsynaptic-density annotations; confirm channel semantics in the selected release."
+    },
+    {
+      "id": "lucchi-hippocampus",
+      "name": "Lucchi EPFL Hippocampus",
+      "aliases": ["Lucchi"],
+      "species": ["mouse"],
+      "tissues": ["hippocampus CA1"],
+      "modalities": ["FIB-SEM"],
+      "voxel_size_nm_zyx": [5, 5, 5],
+      "annotations": ["mitochondria_semantic"],
+      "tasks": ["mitochondria_segmentation", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "landing_page", "url": "https://www.epfl.ch/labs/cvlab/data/data-em/", "format": "unknown"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Classic binary mitochondria benchmark; do not assume instance labels."
+    },
+    {
+      "id": "mitoem",
+      "name": "MitoEM",
+      "aliases": ["MitoEM challenge"],
+      "species": ["human", "rat"],
+      "tissues": ["cortex"],
+      "modalities": ["volume EM"],
+      "voxel_size_nm_zyx": [30, 8, 8],
+      "annotations": ["mitochondria_instance"],
+      "tasks": ["mitochondria_segmentation", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "landing_page", "url": "https://mitoem.grand-challenge.org/", "format": "challenge download"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Human and rat volumes with approximately 40,000 reported mitochondria instances; preserve species-specific splits."
+    },
+    {
+      "id": "emneuron",
+      "name": "EMNeuron",
+      "aliases": ["SegNeuron training collection"],
+      "species": ["multi-species"],
+      "tissues": ["multiple nervous-system tissues"],
+      "modalities": ["multi-modality volume EM"],
+      "voxel_size_nm_zyx": null,
+      "annotations": ["neuron_instance"],
+      "tasks": ["neuron_segmentation", "pretraining", "fine_tuning", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "dataset", "url": "https://huggingface.co/datasets/yanchaoz/EMNeuron", "format": "Hugging Face dataset"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Collection of multiple sub-datasets with reported 5-10 nm in-plane sampling; inspect each sub-dataset rather than assigning one global voxel size."
+    },
+    {
+      "id": "wafer-mec",
+      "name": "Wafer MEC",
+      "aliases": ["wafer_EM", "TokenUnify MEC"],
+      "species": ["mouse"],
+      "tissues": ["medial entorhinal cortex"],
+      "modalities": ["wafer volume EM"],
+      "voxel_size_nm_zyx": [35, 8, 8],
+      "annotations": ["neuron_instance"],
+      "tasks": ["neuron_segmentation", "pretraining", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "request",
+        "dataset_license": "unknown",
+        "urls": [{"role": "dataset", "url": "https://huggingface.co/datasets/cyd0806/wafer_EM", "format": "Hugging Face dataset"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Access request is reported; do not describe as immediately downloadable."
+    },
+    {
+      "id": "h01-proofread",
+      "name": "H01 proofread neurons and synapses",
+      "aliases": ["H01", "H01 proofread 104"],
+      "species": ["human"],
+      "tissues": ["temporal cortex"],
+      "modalities": ["ATUM-mSEM"],
+      "voxel_size_nm_zyx": [30, 4, 4],
+      "annotations": ["skeleton", "synapse", "subcellular_annotation"],
+      "tasks": ["connectomics", "synapse_analysis", "visualization"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "landing_page", "url": "https://h01-release.storage.googleapis.com/landing.html", "format": "Google Cloud release"},
+          {"role": "proofread_skeletons", "url": "https://storage.googleapis.com/h01-release/data/20210601/proofread_104/skeletons/104_proofread_neurons_swc.zip", "format": "SWC ZIP"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "The highlighted proofread release is skeleton-based and should not be treated as dense neuron instance ground truth."
+    },
+    {
+      "id": "hemibrain-v1-2",
+      "name": "FlyEM Hemibrain v1.2",
+      "aliases": ["Hemibrain", "Hemi-brain"],
+      "species": ["drosophila"],
+      "tissues": ["brain"],
+      "modalities": ["FIB-SEM"],
+      "voxel_size_nm_zyx": [8, 8, 8],
+      "annotations": ["neuron_instance", "synapse"],
+      "tasks": ["connectomics", "visualization", "evaluation"],
+      "raw_available": "yes",
+      "labels_available": "yes",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [
+          {"role": "landing_page", "url": "https://www.janelia.org/project-team/flyem/hemibrain", "format": "project portal"},
+          {"role": "graph", "url": "https://neuprint.janelia.org/", "format": "neuPrint"}
+        ]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Reported proofread segmentation and synapses; verify the exact Neuroglancer source and version before array access."
+    },
+    {
+      "id": "cem500k",
+      "name": "CEM500K",
+      "aliases": ["EMPIAR-10592"],
+      "species": ["multi-species"],
+      "tissues": ["multiple"],
+      "modalities": ["multi-modality EM"],
+      "voxel_size_nm_zyx": null,
+      "annotations": ["unlabeled"],
+      "tasks": ["pretraining"],
+      "raw_available": "yes",
+      "labels_available": "no",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "archive", "url": "https://www.ebi.ac.uk/empiar/EMPIAR-10592/", "format": "EMPIAR"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Unlabeled pretraining collection; do not present it as segmentation ground truth."
+    },
+    {
+      "id": "em-pretrain-data",
+      "name": "EM_pretrain_data",
+      "aliases": ["TokenUnify pretraining data"],
+      "species": ["multi-species"],
+      "tissues": ["multiple"],
+      "modalities": ["multi-modality EM"],
+      "voxel_size_nm_zyx": null,
+      "annotations": ["unlabeled"],
+      "tasks": ["pretraining"],
+      "raw_available": "yes",
+      "labels_available": "no",
+      "access": {
+        "status": "open",
+        "dataset_license": "unknown",
+        "urls": [{"role": "dataset", "url": "https://huggingface.co/datasets/cyd0806/EM_pretrain_data", "format": "Hugging Face dataset"}]
+      },
+      "metadata_status": "reported",
+      "last_verified": "2026-08-17",
+      "sources": ["https://github.com/yanchaoz/awesome-vem-datasets/blob/master/README.md"],
+      "notes": "Unlabeled pretraining data; inspect constituent datasets and licenses before redistribution or model release."
+    }
+  ]
+}
