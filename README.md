@@ -25,6 +25,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | Cross-Skill adaptation on a new EM dataset | coarse reconstruction, selective corrections, training handoff, paired evaluation |
 | [`review-em-segmentation`](skills/review-em-segmentation/SKILL.md) | Independent integrity, metric, and visual review of existing semantic or instance labels | review report, calibrated comparison figures, optional human approval record |
 | [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | [Neuroglancer](https://github.com/google/neuroglancer) preparation, local-field overlays, density views, smooth camera tours, and 3D mesh presentation | verified precomputed sources, viewer handoff, MP4, PLY mesh |
+| [`blender-em-cutaway`](skills/blender-em-cutaway/SKILL.md) | Source-aligned EM volume and contour-mesh figures with conservative stepped cutaways | native-grid VDB, editable Blender scene, render passes, geometry audits, verified PNG |
 
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
@@ -52,6 +53,8 @@ Existing segmentation artifacts can be passed to `$review-em-segmentation` for i
 
 After segmentation artifacts and physical grids are fixed, `$cloudvolume-video` can prepare and verify derived Neuroglancer precomputed layers, then present selected local fields or mesh scenes without changing upstream labels or model decisions.
 
+For a static full-volume EM figure with an existing contour mesh, `$blender-em-cutaway` builds a Blender scene in the same physical coordinate frame. It diagnoses clipping, missing-data and display artifacts before revising a figure, and keeps approved settings fixed during local edits.
+
 ## Quick start
 
 ### Install
@@ -66,6 +69,7 @@ Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
 Install skills/bootstrap-em-segmentation from yanchaoz/EM-Skills.
 Install skills/review-em-segmentation from yanchaoz/EM-Skills.
 Install skills/cloudvolume-video from yanchaoz/EM-Skills.
+Install skills/blender-em-cutaway from yanchaoz/EM-Skills.
 ```
 
 Install the full directory, not only `SKILL.md`, then start a new Codex task so the Skills can be discovered.
@@ -167,6 +171,18 @@ physical transform. If valid 3D mesh
 metadata exist, export the requested segment IDs and make a verified turntable.
 ```
 
+### 8. Native-volume Blender cutaway
+
+```text
+Use $blender-em-cutaway with my uint8 ZYX EM TIFF and aligned contour OBJ.
+Verify voxel size, offsets and mesh units. Make two conservative stepped cuts,
+keep the surrounding EM, and show small-Z slices at the top without stretching
+the volume. Diagnose dark bands from native data before changing the cut.
+For later corner edits, preserve the approved camera, contour and display mapping.
+```
+
+The [case record](skills/blender-em-cutaway/references/case-study.zh-CN.md) documents observed failures, source checks and the accepted corrections. Public examples use a small synthetic fixture; no private EM volume, original mesh or project-specific Blender binary is bundled.
+
 ## What a Skill run preserves
 
 | Concern | Behavior |
@@ -260,7 +276,8 @@ EM-Skills/
 │   ├── suggest-em-annotations/
 │   ├── bootstrap-em-segmentation/
 │   ├── review-em-segmentation/
-│   └── cloudvolume-video/
+│   ├── cloudvolume-video/
+│   └── blender-em-cutaway/
 ├── examples/
 ├── README.md
 └── README.zh-CN.md
@@ -270,6 +287,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 
 ## Technical documentation
 
+- Blender EM cutaway: [Skill](skills/blender-em-cutaway/SKILL.md) · [configuration](skills/blender-em-cutaway/references/configuration.md) · [operations](skills/blender-em-cutaway/references/operations.md) · [quality gates](skills/blender-em-cutaway/references/quality-gates.md) · [case record](skills/blender-em-cutaway/references/case-study.zh-CN.md)
 - Dataset discovery: [Skill](skills/discover-vem-datasets/SKILL.md) · [catalog schema](skills/discover-vem-datasets/references/catalog-schema.md) · [selection and handoff](skills/discover-vem-datasets/references/selection-and-handoff.md) · [catalog snapshot](skills/discover-vem-datasets/references/datasets.json)
 - SegNeuron: [Skill](skills/segneuron-inference/SKILL.md) · [configuration](skills/segneuron-inference/references/config-schema.md) · [resolution and grids](skills/segneuron-inference/references/resolution-and-grids.md) · [deployment](skills/segneuron-inference/references/deployment.md)
 - MitoNet: [Skill](skills/mitonet-inference/SKILL.md) · [model contract](skills/mitonet-inference/references/model-contract.md) · [configuration](skills/mitonet-inference/references/config-schema.md)

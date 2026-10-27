@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "example_kind": "CASE_GEOMETRY_TEMPLATE_NOT_PORTABLE_DEFAULTS",
+  "notes": "Replace paths and metadata before use. Geometry and camera illustrate the documented source case, not an arbitrary specimen. Display settings are explicit reproducible defaults, not a bundled historical LUT. Use make_demo.py for a runnable synthetic example.",
+  "source": {
+    "path": "../inputs/em.tif",
+    "axis_order": "zyx",
+    "voxel_size_nm_xyz": [640, 640, 640],
+    "offset_nm_xyz": [0, 0, 0],
+    "zero_is_missing": true
+  },
+  "mesh": {
+    "path": "../inputs/core.obj",
+    "units": "nm",
+    "offset_nm_xyz": [0, 0, 0]
+  },
+  "geometry": {
+    "reflect_z": true,
+    "basis_rotation_deg": 18,
+    "outer_uv_bounds_um": [[168.51118316150126, -10.635644311807798], [625.2197214771428, 662.7447882303234]],
+    "display_z_bounds_um": [-0.32, 338.56],
+    "keep_planes": [{"coeff_uvz": [1, 0, -0.25], "threshold_um": 121.52}],
+    "remove_regions": [
+      {
+        "name": "first_step",
+        "planes": [
+          {"coeff_uvz": [0, -1, 0], "threshold_um": -560},
+          {"coeff_uvz": [1, 0, 0], "threshold_um": 275},
+          {"coeff_uvz": [0, 0, 1], "threshold_um": 265.92}
+        ]
+      },
+      {
+        "name": "second_step_shared_native_plane",
+        "planes": [
+          {"coeff_uvz": [0, -1, 0], "threshold_um": -515},
+          {"coeff_uvz": [1, 0, 0], "threshold_um": 320},
+          {"coeff_uvz": [0, 0, 1], "threshold_um": 197.12}
+        ]
+      }
+    ]
+  },
+  "display": {
+    "normalization": {"mode": "none", "percentiles": [1, 99]},
+    "illumination": {"enabled": false, "target_mean": 110, "max_gain": 4.5, "downsample": 8, "sigma": 3},
+    "linear_white_mix": 0.08,
+    "emission_power": 0.85
+  },
+  "camera": {
+    "location_mm": [1.438942790031433, -0.33603882789611816, 1.8239556550979614],
+    "rotation_euler_rad": [0.6853196024894714, 0.14542552828788757, 0.7844889163970947],
+    "ortho_scale_mm": 1.0460717678070068
+  },
+  "contour": {"mode": "xray", "gray_linear": 1, "alpha_center": 0.28, "alpha_edge": 0.9, "roughness": 0.42, "emission": 0.35},
+  "render": {"resolution": [1000, 1000], "samples": 12, "device": "CPU", "tile_size": 128, "density_per_mm": 1500, "step_um": 0.32},
+  "output_dir": "../outputs/cutaway"
+}

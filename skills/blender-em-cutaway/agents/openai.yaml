@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender EM Cutaway"
+  short_description: "Source-aligned EM volumes and stepped cutaway figures"
+  default_prompt: "Use $blender-em-cutaway to create or revise a source-aligned EM volume figure with a contour mesh, preserving native geometry and auditing each requested change."
