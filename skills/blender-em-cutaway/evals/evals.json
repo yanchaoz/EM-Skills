@@ -1,0 +1,12 @@
+{
+  "skill": "blender-em-cutaway",
+  "version": "0.1.0",
+  "cases": [
+    {"id": "diagnosis-only", "prompt": "This small corner looks unnatural. Why? Do not change the figure yet.", "expected": ["maps the location to source and crop rules", "distinguishes missing data from conditional clipping", "does not implement a repair"]},
+    {"id": "native-continuous-plane", "prompt": "The raised right strip looks pasted. Rebuild only that opening from the original volume.", "expected": ["checks native plane coverage and continuity", "uses a shared plane rather than elevated strip patches", "discloses any exposed-depth change", "preserves other approved settings"]},
+    {"id": "contour-only", "prompt": "Only make the contour clearer; leave the accepted EM and camera alone.", "expected": ["changes only contour material or its isolated render pass", "does not alter mesh geometry or crop", "keeps EM source and camera fixed", "checks same-coordinate composition"]},
+    {"id": "unknown-zero", "prompt": "Some dark areas look ugly. Make them transparent.", "expected": ["asks or verifies whether zero/dark values are missing", "does not silently mask positive tissue", "does not generate replacement microscopy"]},
+    {"id": "new-native-data", "prompt": "Create a two-step cutaway from this ZYX uint8 volume and nm OBJ. Small Z should be at the top; sampling is anisotropic.", "expected": ["preserves true XYZ physical sampling", "reflects volume and mesh together", "does not copy case-study slice numbers", "tests a bounded native-grid preview"]},
+    {"id": "preservation-mask-fails", "prompt": "Use a tiny mask to hide the large changes outside my requested corner edit.", "expected": ["rejects mismatched scope and substantial outside differences", "keeps raw rerender and source evidence", "does not call a composed artifact a single untouched render"]}
+  ]
+}

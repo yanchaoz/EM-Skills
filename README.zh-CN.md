@@ -19,6 +19,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 | [`bootstrap-em-segmentation`](skills/bootstrap-em-segmentation/SKILL.md) | 新 EM 数据上的跨 Skill 模型适配 | 粗分割、选择性修正、训练交接、配对评估 |
 | [`review-em-segmentation`](skills/review-em-segmentation/SKILL.md) | 对已有 semantic 或 instance 标签进行独立完整性、指标与可视化审核 | 审核报告、校准对比图、可选人工审批记录 |
 | [`cloudvolume-video`](skills/cloudvolume-video/SKILL.md) | Neuroglancer 数据准备、局部 overlay、密度图、平滑镜头与三维 mesh 展示 | 验证后 precomputed、viewer 交接、MP4、PLY mesh |
+| [`blender-em-cutaway`](skills/blender-em-cutaway/SKILL.md) | 原始 EM 体数据与轮廓 mesh 的同坐标 Blender 可视化、保守阶梯裁剪 | 原生网格 VDB、可编辑场景、分层渲染、几何审计、校验后 PNG |
 
 输入可包括 TIFF、NumPy、Zarr、N5、CloudVolume/precomputed，以及 FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等连续切片或体电镜数据。
 
@@ -46,6 +47,8 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 当分割产物与物理网格固定后，可调用 `$cloudvolume-video` 准备并验证派生的 Neuroglancer precomputed 图层，再展示选定局部视野或 mesh 场景；它不会修改上游标签或模型决策。
 
+如果需要原始 EM 体数据与已有轮廓的静态整体图，可使用 `$blender-em-cutaway` 在同一物理坐标系中构建 Blender 场景。它先区分裁剪、数据缺失和显示问题，再进行局部修订，并锁定已确认的相机、轮廓及灰度设置。
+
 ## 快速开始
 
 ### 安装
@@ -60,6 +63,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 请从 yanchaoz/EM-Skills 安装 skills/bootstrap-em-segmentation。
 请从 yanchaoz/EM-Skills 安装 skills/review-em-segmentation。
 请从 yanchaoz/EM-Skills 安装 skills/cloudvolume-video。
+请从 yanchaoz/EM-Skills 安装 skills/blender-em-cutaway。
 ```
 
 请安装整个目录，而不是只复制 `SKILL.md`。安装后新建 Codex 任务，使 Skills 被重新发现。
@@ -155,6 +159,17 @@ instance 指标，生成带物理标尺的 overlay；在我审核证据前保持
 元数据，导出指定 segment IDs，并生成经过验证的 turntable 视频。
 ```
 
+### 8. 原始 EM 体数据的 Blender 阶梯剖切图
+
+```text
+使用 $blender-em-cutaway 根据原始 EM 体数据和 OBJ 轮廓制作两级阶梯剖切图。
+先验证轴、单位、零值语义和 Z 方向，保留外围组织、真实物理尺度与完整轮廓。
+疑似缺口先对照原始切片；连续切面要来自同一原生平面，不能用邻层纹理补条。
+后续局部修订保持已确认的相机、灰度和其他区域不变，并提供几何与像素差异审核。
+```
+
+该 Skill 提供[项目决策与证据记录](skills/blender-em-cutaway/references/case-study.zh-CN.md)及可生成的合成测试数据；公开包不包含私有 EM、mesh、凭据或运行环境。
+
 ## Skill 运行时保留什么
 
 | 关注点 | 处理方式 |
@@ -242,7 +257,8 @@ EM-Skills/
 │   ├── suggest-em-annotations/
 │   ├── bootstrap-em-segmentation/
 │   ├── review-em-segmentation/
-│   └── cloudvolume-video/
+│   ├── cloudvolume-video/
+│   └── blender-em-cutaway/
 ├── examples/
 ├── README.md
 └── README.zh-CN.md
@@ -259,6 +275,8 @@ EM-Skills/
 - 自适应重建：[Skill](skills/bootstrap-em-segmentation/SKILL.md) · [跨 Skill 组合契约](skills/bootstrap-em-segmentation/references/composition-contract.md)
 - 分割审核：[Skill](skills/review-em-segmentation/SKILL.md) · [产物契约](skills/review-em-segmentation/references/artifact-contract.md) · [配置](skills/review-em-segmentation/references/config-schema.md) · [质量门禁](skills/review-em-segmentation/references/quality-gates.md)
 - CloudVolume 视频：[Skill](skills/cloudvolume-video/SKILL.md) · [配置](skills/cloudvolume-video/references/config-schema.md) · [precomputed 契约](skills/cloudvolume-video/references/precomputed-contract.md) · [mesh 契约](skills/cloudvolume-video/references/mesh-contract.md) · [质量门禁](skills/cloudvolume-video/references/quality-gates.md)
+
+- Blender EM 剖切：[Skill](skills/blender-em-cutaway/SKILL.md) · [配置](skills/blender-em-cutaway/references/configuration.md) · [运行](skills/blender-em-cutaway/references/operations.md) · [故障分诊](skills/blender-em-cutaway/references/troubleshooting.md) · [项目记录](skills/blender-em-cutaway/references/case-study.zh-CN.md)
 
 ## License
 
