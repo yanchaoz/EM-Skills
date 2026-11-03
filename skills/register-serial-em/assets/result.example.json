@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "group": "volume-a",
+  "backend": "sofima",
+  "artifact_kind": "aligned_intensity",
+  "axes": "zyx",
+  "shape_zyx": [
+    2,
+    4096,
+    4096
+  ],
+  "dtype": "uint8",
+  "voxel_size_nm_xyz": [
+    5,
+    5,
+    100
+  ],
+  "voxel_offset_xyz": [
+    0,
+    0,
+    0
+  ],
+  "sections": [
+    {
+      "id": "layer1",
+      "z_index": 0,
+      "path": "aligned/layer1.tif",
+      "valid_mask": "valid/layer1.png"
+    },
+    {
+      "id": "layer2",
+      "z_index": 1,
+      "path": "aligned/layer2.tif",
+      "valid_mask": "valid/layer2.png"
+    }
+  ],
+  "provenance": {
+    "run_identity": "replace-with-run-identity",
+    "qc_report": "quality.json",
+    "transforms": [
+      {
+        "path": "transforms/maps.npz",
+        "format": "document actual native array layout",
+        "direction": "output-to-source",
+        "component_axes": "xy",
+        "units": "native_pixels",
+        "grid_spacing_xy": [
+          40,
+          40
+        ],
+        "grid_origin_xy": [
+          0,
+          0
+        ],
+        "reference_section": "layer1",
+        "note": "Example metadata only; verify actual map conventions"
+      }
+    ]
+  }
+}

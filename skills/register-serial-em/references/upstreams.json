@@ -1,0 +1,34 @@
+{
+  "inspected_on": "2026-11-03",
+  "note": "Source audit pins, not an end-to-end compatibility certification",
+  "repositories": [
+    {
+      "name": "sofima",
+      "repository": "https://github.com/google-research/sofima",
+      "commit": "c8b5e254a9b031a9c00f3d399e47bafda3c96a22",
+      "license": "Apache-2.0",
+      "source": "https://github.com/google-research/sofima/tree/c8b5e254a9b031a9c00f3d399e47bafda3c96a22"
+    },
+    {
+      "name": "metroem",
+      "repository": "https://github.com/seung-lab/metroem",
+      "commit": "417f2cddb334cc8e945068a909dc9cf6ef58b20d",
+      "license": "Apache-2.0",
+      "source": "https://github.com/seung-lab/metroem/tree/417f2cddb334cc8e945068a909dc9cf6ef58b20d"
+    },
+    {
+      "name": "corgie",
+      "repository": "https://github.com/seung-lab/corgie",
+      "commit": "5307f8047287824a3f6eb3113e83e3f098d2d7f6",
+      "license": "Apache-2.0",
+      "source": "https://github.com/seung-lab/corgie/tree/5307f8047287824a3f6eb3113e83e3f098d2d7f6"
+    },
+    {
+      "name": "feabas",
+      "repository": "https://github.com/YuelongWu/feabas",
+      "commit": "605e6597a834d0a2e82cd331b94d3b4f876c62a9",
+      "license": "MIT",
+      "source": "https://github.com/YuelongWu/feabas/tree/605e6597a834d0a2e82cd331b94d3b4f876c62a9"
+    }
+  ]
+}

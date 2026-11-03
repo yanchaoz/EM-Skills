@@ -13,6 +13,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 | Skill | 适用任务 | 主要输出 |
 | --- | --- | --- |
 | [`discover-vem-datasets`](skills/discover-vem-datasets/SKILL.md) | 从 [awesome-vem-datasets](https://github.com/yanchaoz/awesome-vem-datasets) 检索并审计可用于具体任务的公开数据 | 带证据状态的候选清单、未决元数据、下游交接 manifest |
+| [`register-serial-em`](skills/register-serial-em/SKILL.md) | SOFIMA、Popovych 的 metroEM/corgie（SEAMLeSS + ABCD）、FEABAS 连续切片配准 | 原生后端计划与日志、变换和连续性 QC、无损 TIFF、仅 XY 降采样 precomputed |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | SegNeuron affinity 推理与三维神经元重建 | affinity、多 beta instance、source-grid 标签、QC 图 |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | MitoNet/Empanada 线粒体分割 | semantic mask、三维 instance、profile 对比、QC 图 |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | 基于 embedding 的可变尺寸子体块选择 | 标注队列、UMAP/空间审核、获批清单 |
@@ -24,6 +25,8 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 输入可包括 TIFF、NumPy、Zarr、N5、CloudVolume/precomputed，以及 FIB-SEM、SBF-SEM、ATUM-SEM、ssTEM 等连续切片或体电镜数据。
 
 ## Skills 如何联动
+
+未配准的连续切片先交给 `$register-serial-em`，再做下游分析。它保留独立体数据边界，使用固定版本的官方后端，验证原始采样网格的 TIFF 与仅 XY 降采样 precomputed。已有合格配准结果可直接导出，无需重跑配准。
 
 数据选择请求先交给 `$discover-vem-datasets`，由它生成候选清单并向执行型 Skill 导出交接 manifest。单阶段分析请求直接交给对应 Skill；当请求跨越粗分割、选择性修正和模型适配时，由 `$bootstrap-em-segmentation` 协调。
 
@@ -57,6 +60,7 @@ EM-Skills 将专业 EM 方法封装为按任务路由的 Agent Skills。每个 S
 
 ```text
 请从 yanchaoz/EM-Skills 安装 skills/discover-vem-datasets。
+请从 yanchaoz/EM-Skills 安装 skills/register-serial-em。
 请从 yanchaoz/EM-Skills 安装 skills/segneuron-inference。
 请从 yanchaoz/EM-Skills 安装 skills/mitonet-inference。
 请从 yanchaoz/EM-Skills 安装 skills/suggest-em-annotations。
@@ -170,6 +174,15 @@ instance 指标，生成带物理标尺的 overlay；在我审核证据前保持
 
 该 Skill 提供[项目决策与证据记录](skills/blender-em-cutaway/references/case-study.zh-CN.md)及可生成的合成测试数据；公开包不包含私有 EM、mesh、凭据或运行环境。
 
+### 9. 连续切片配准
+
+```text
+请用 $register-serial-em 在同一代表性小范围比较 SOFIMA、Popovych 的 Nature
+Communications metroEM/corgie 流程和 FEABAS。四个目录是独立体数据，各100层，
+XYZ分辨率为5,5,100 nm。保留原始强度与移动后的边界；缺少模型时如实报告。
+把认可的结果导出为无损 TIFF 和仅 XY 降采样的 CloudVolume，检查前后对比和 XZ/YZ 连续性。
+```
+
 ## Skill 运行时保留什么
 
 | 关注点 | 处理方式 |
@@ -252,6 +265,7 @@ instance 指标，生成带物理标尺的 overlay；在我审核证据前保持
 EM-Skills/
 ├── skills/
 │   ├── discover-vem-datasets/
+│   ├── register-serial-em/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
@@ -268,6 +282,7 @@ EM-Skills/
 
 ## 技术文档
 
+- 连续切片配准：[Skill](skills/register-serial-em/SKILL.md) · [后端选择](skills/register-serial-em/references/backends.md) · [输入与结果契约](skills/register-serial-em/references/project-contract.md) · [QC](skills/register-serial-em/references/quality.md) · [验证范围](skills/register-serial-em/references/validation.md)
 - 数据发现：[Skill](skills/discover-vem-datasets/SKILL.md) · [目录 schema](skills/discover-vem-datasets/references/catalog-schema.md) · [筛选与交接](skills/discover-vem-datasets/references/selection-and-handoff.md) · [目录快照](skills/discover-vem-datasets/references/datasets.json)
 - SegNeuron：[Skill](skills/segneuron-inference/SKILL.md) · [配置](skills/segneuron-inference/references/config-schema.md) · [分辨率与网格](skills/segneuron-inference/references/resolution-and-grids.md) · [部署](skills/segneuron-inference/references/deployment.md)
 - MitoNet：[Skill](skills/mitonet-inference/SKILL.md) · [模型契约](skills/mitonet-inference/references/model-contract.md) · [配置](skills/mitonet-inference/references/config-schema.md)
@@ -281,3 +296,4 @@ EM-Skills/
 ## License
 
 使用与再分发条款请参见仓库 License。
+

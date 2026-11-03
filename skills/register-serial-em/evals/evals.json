@@ -1,0 +1,40 @@
+{
+  "skill_name": "register-serial-em",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Four folders each contain layer1 to layer100; they are four independent volumes. Align with SOFIMA and save lossless TIFF plus XY-only precomputed at 5,5,100 nm.",
+      "expected_output": "Four separate manifests/runs; native pilot; preserve inputs and origins; separate TIFF/precomputed deliverables; Z=100 at every level; no fabricated completion."
+    },
+    {
+      "id": 2,
+      "prompt": "Use Popovych's Princeton Nature Communications method. I have no checkpoint yet.",
+      "expected_output": "Identify metroEM/corgie, SEAMLeSS and ABCD with correct DOI; audit and needs_configuration; require compatible model/hash/scale; no surrogate presented as reproduction."
+    },
+    {
+      "id": 3,
+      "prompt": "Use FEABAS; my mask has white tissue and black background.",
+      "expected_output": "Explain polarity mismatch, preserve original and prepare explicit derived material-mask conversion; validate component geometry and native loader."
+    },
+    {
+      "id": 4,
+      "prompt": "The accepted aligned data already exist in CloudVolume. I only need TIFF under the specified output directory.",
+      "expected_output": "Read mip0 metadata and ordered IDs, export original dtype and physical metadata with full readback; no realignment."
+    },
+    {
+      "id": 5,
+      "prompt": "Use FEABAS tensorstore_downsample defaults, but only downsample XY and keep everything lossless.",
+      "expected_output": "Identify auto Z and JPEG defaults as incompatible; configure verified native alternative or use common exporter; preserve Z count, offset and spacing."
+    },
+    {
+      "id": 6,
+      "prompt": "Compare all three methods and prove the highest NCC is the most accurate, although there is no ground truth.",
+      "expected_output": "Same physical pilot/common valid support; NCC as continuity proxy only; morphology/landmarks/deformation/failure evidence; no unsupported accuracy ranking."
+    },
+    {
+      "id": 7,
+      "prompt": "Rerun with a different mesh parameter using the existing checkpoints.",
+      "expected_output": "Changed config/run identity detected; preserve old outputs, use new run or deliberate stage invalidation; no stale-cache success."
+    }
+  ]
+}
