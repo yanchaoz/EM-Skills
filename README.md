@@ -19,6 +19,7 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 | Skill | Use it for | Main outputs |
 | --- | --- | --- |
 | [`discover-vem-datasets`](skills/discover-vem-datasets/SKILL.md) | Search and audit the [awesome-vem-datasets](https://github.com/yanchaoz/awesome-vem-datasets) catalog for task-ready public data | evidence-aware shortlist, unresolved metadata, downstream handoff manifest |
+| [`register-serial-em`](skills/register-serial-em/SKILL.md) | Serial EM alignment with SOFIMA, Popovych's metroEM/corgie (SEAMLeSS + ABCD), or FEABAS | native backend plans/logs, transform and continuity QC, lossless TIFF, XY-only precomputed |
 | [`segneuron-inference`](skills/segneuron-inference/SKILL.md) | [SegNeuron](https://papers.miccai.org/miccai-2024/paper/0518_paper.pdf) affinity inference and 3D neuron reconstruction | affinities, multi-beta instances, source-grid labels, QC figures |
 | [`mitonet-inference`](skills/mitonet-inference/SKILL.md) | [MitoNet](https://www.cell.com/cell-systems/fulltext/S2405-4712(22)00492-6) mitochondrial segmentation | semantic masks, 3D instances, profile comparisons, QC figures |
 | [`suggest-em-annotations`](skills/suggest-em-annotations/SKILL.md) | [Embedding-guided, variable-size subvolume selection](https://www.sciencedirect.com/science/article/pii/S2589004225027683) | annotation queue, UMAP/spatial review, approved manifest |
@@ -30,6 +31,8 @@ Use one Skill for a focused task—such as auditing metadata, comparing beta val
 Supported inputs include TIFF, NumPy, Zarr, N5, CloudVolume/precomputed, and other serial-section or volume EM datasets, including FIB-SEM, SBF-SEM, ATUM-SEM, and ssTEM.
 
 ## How the Skills work together
+
+Unaligned serial sections go to `$register-serial-em` before downstream analysis. It preserves independent volume boundaries, uses pinned official backends, and verifies native-grid TIFF or XY-only precomputed delivery. Accepted alignment can be exported without rerunning registration.
 
 Dataset-selection requests start with `$discover-vem-datasets`, which can export a candidate handoff to an execution Skill. Single-stage analysis requests go directly to the relevant Skill. Requests that span reconstruction, selective correction, and adaptation use `$bootstrap-em-segmentation` as the coordinator.
 
@@ -63,6 +66,7 @@ Ask Codex to install one or more complete Skill directories:
 
 ```text
 Install skills/discover-vem-datasets from yanchaoz/EM-Skills.
+Install skills/register-serial-em from yanchaoz/EM-Skills.
 Install skills/segneuron-inference from yanchaoz/EM-Skills.
 Install skills/mitonet-inference from yanchaoz/EM-Skills.
 Install skills/suggest-em-annotations from yanchaoz/EM-Skills.
@@ -183,6 +187,17 @@ For later corner edits, preserve the approved camera, contour and display mappin
 
 The [case record](skills/blender-em-cutaway/references/case-study.zh-CN.md) documents observed failures, source checks and the accepted corrections. Public examples use a small synthetic fixture; no private EM volume, original mesh or project-specific Blender binary is bundled.
 
+### 9. Serial-section registration
+
+```text
+Use $register-serial-em to compare SOFIMA, the Popovych Nature Communications
+metroEM/corgie pipeline, and FEABAS on the same bounded pilot. These four folders
+are independent stacks, each with 100 sections at XYZ 5,5,100 nm. Preserve native
+intensities and displaced borders; report missing models rather than substituting
+methods. Export accepted results as lossless TIFF and XY-only CloudVolume pyramids,
+then inspect before/after and XZ/YZ continuity.
+```
+
 ## What a Skill run preserves
 
 | Concern | Behavior |
@@ -271,6 +286,7 @@ This single-section kidney source is not presented as a true 3D mesh. Mesh retri
 EM-Skills/
 ├── skills/
 │   ├── discover-vem-datasets/
+│   ├── register-serial-em/
 │   ├── segneuron-inference/
 │   ├── mitonet-inference/
 │   ├── suggest-em-annotations/
@@ -287,6 +303,7 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 
 ## Technical documentation
 
+- Serial EM registration: [Skill](skills/register-serial-em/SKILL.md) · [backend selection](skills/register-serial-em/references/backends.md) · [project/result contract](skills/register-serial-em/references/project-contract.md) · [QC](skills/register-serial-em/references/quality.md) · [validation scope](skills/register-serial-em/references/validation.md)
 - Blender EM cutaway: [Skill](skills/blender-em-cutaway/SKILL.md) · [configuration](skills/blender-em-cutaway/references/configuration.md) · [operations](skills/blender-em-cutaway/references/operations.md) · [quality gates](skills/blender-em-cutaway/references/quality-gates.md) · [case record](skills/blender-em-cutaway/references/case-study.zh-CN.md)
 - Dataset discovery: [Skill](skills/discover-vem-datasets/SKILL.md) · [catalog schema](skills/discover-vem-datasets/references/catalog-schema.md) · [selection and handoff](skills/discover-vem-datasets/references/selection-and-handoff.md) · [catalog snapshot](skills/discover-vem-datasets/references/datasets.json)
 - SegNeuron: [Skill](skills/segneuron-inference/SKILL.md) · [configuration](skills/segneuron-inference/references/config-schema.md) · [resolution and grids](skills/segneuron-inference/references/resolution-and-grids.md) · [deployment](skills/segneuron-inference/references/deployment.md)
@@ -299,3 +316,4 @@ Each Skill contains a concise `SKILL.md`, UI metadata under `agents/`, executabl
 ## License
 
 See the repository license for usage and redistribution terms.
+

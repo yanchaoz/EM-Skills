@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "axes": "yx",
+  "voxel_size_nm_xyz": [
+    5,
+    5,
+    100
+  ],
+  "group_relationship": "independent",
+  "output_root": "derived/run-001",
+  "groups": [
+    {
+      "id": "volume-a",
+      "sections": [
+        {
+          "id": "layer1",
+          "z_index": 0,
+          "path": "raw/volume-a/layer1.tif"
+        },
+        {
+          "id": "layer2",
+          "z_index": 1,
+          "path": "raw/volume-a/layer2.tif"
+        }
+      ]
+    }
+  ],
+  "backends": {
+    "sofima": {
+      "python": "/environments/sofima/bin/python",
+      "repositories": [
+        {
+          "name": "sofima",
+          "path": "/code/sofima",
+          "commit": "c8b5e254a9b031a9c00f3d399e47bafda3c96a22"
+        }
+      ],
+      "models": [],
+      "stages": {
+        "pilot": [],
+        "full": []
+      }
+    },
+    "metroem-corgie": {
+      "python": "/environments/metroem-corgie/bin/python",
+      "repositories": [
+        {
+          "name": "metroem",
+          "path": "/code/metroem",
+          "commit": "417f2cddb334cc8e945068a909dc9cf6ef58b20d"
+        },
+        {
+          "name": "corgie",
+          "path": "/code/corgie",
+          "commit": "5307f8047287824a3f6eb3113e83e3f098d2d7f6"
+        }
+      ],
+      "models": [],
+      "model_resolution_nm_xy": null,
+      "stages": {
+        "pilot": [],
+        "full": []
+      }
+    },
+    "feabas": {
+      "python": "/environments/feabas/bin/python",
+      "repositories": [
+        {
+          "name": "feabas",
+          "path": "/code/feabas",
+          "commit": "605e6597a834d0a2e82cd331b94d3b4f876c62a9"
+        }
+      ],
+      "models": [],
+      "stages": {
+        "pilot": [],
+        "full": []
+      }
+    }
+  }
+}

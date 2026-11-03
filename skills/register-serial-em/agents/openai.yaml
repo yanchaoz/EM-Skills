@@ -1,0 +1,4 @@
+interface:
+  display_name: "Serial EM Registration"
+  short_description: "Align serial EM with SOFIMA, SEAMLeSS or FEABAS"
+  default_prompt: "Use $register-serial-em to audit my serial EM sections, select or compare the requested registration backends, and verify TIFF or CloudVolume delivery."
